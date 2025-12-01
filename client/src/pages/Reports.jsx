@@ -1,0 +1,1151 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+// Card component for report sections
+const ReportCard = ({ title, children, className = '' }) => (
+  <div className={`bg-white rounded-lg shadow-md p-6 mb-6 ${className}`}>
+    <h2 className="text-xl font-semibold text-gray-800 mb-4">{title}</h2>
+    {children}
+  </div>
+);
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// const LOGO_URL = import.meta.env.VITE_LOGO_URL;
+export default function Reports() {
+  const token = localStorage.getItem('auth_token');
+  const userStr = localStorage.getItem('auth_user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const isAdmin = user?.role === 'ADMIN';
+  const navigate = useNavigate();
+
+  // Sales state
+  const [sales, setSales] = useState([]);
+  const [loadingSales, setLoadingSales] = useState(false);
+  const [errorSales, setErrorSales] = useState('');
+  const [salesPage, setSalesPage] = useState(1);
+  const salesPageSize = 10;
+  
+  // Invoice reprint state
+  const [showReprintInvoice, setShowReprintInvoice] = useState(false);
+  const [reprintSale, setReprintSale] = useState(null);
+  const [company, setCompany] = useState(null);
+  
+  // Filter states - fecha actual por defecto (calculada dinámicamente con zona horaria local)
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  // Establecer fechas actuales al montar el componente
+  useEffect(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    console.log('Fecha calculada:', dateStr, 'Fecha local:', now.toLocaleDateString());
+    setStartDate(dateStr);
+    setEndDate(dateStr);
+  }, []);
+  
+  const [metodoPago, setMetodoPago] = useState('');
+  const [sellerId, setSellerId] = useState('');
+  const [users, setUsers] = useState([]);
+
+  // Pagination for sales
+  const salesTotalPages = Math.max(1, Math.ceil(sales.length / salesPageSize));
+  const salesPageItems = sales.slice(
+    (salesPage - 1) * salesPageSize,
+    salesPage * salesPageSize
+  );
+
+  // Load users (sellers)
+  const loadUsers = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const res = await fetch(`${API_URL}/users`, { 
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUsers(Array.isArray(data) ? data : (data.data || []));
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  }, [isAdmin, token]);
+
+  // Validate date range
+  const validateDates = useCallback(() => {
+    if (!startDate || !endDate) {
+      setErrorSales('Las fechas de inicio y fin son obligatorias');
+      return false;
+    }
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (start > end) {
+      setErrorSales('La fecha de inicio no puede ser mayor a la fecha de fin');
+      return false;
+    }
+    
+    return true;
+  }, [startDate, endDate]);
+
+  // Load company data
+  const loadCompany = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/company`, { 
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCompany(data);
+      }
+    } catch (error) {
+      console.error('Error loading company:', error);
+    }
+  }, [token]);
+
+  // Handle invoice reprint
+  const handleReprintInvoice = async (saleId) => {
+    try {
+      const res = await fetch(`${API_URL}/sales/${saleId}`, { 
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Error cargando venta');
+      
+      setReprintSale(data);
+      setShowReprintInvoice(true);
+    } catch (error) {
+      console.error('Error loading sale for reprint:', error);
+      alert('Error al cargar los datos de la venta');
+    }
+  };
+
+  // Print function for reprint (misma lógica que POS)
+  const handlePrintReprintInvoice = () => {
+    if (!reprintSale || !company) return;
+    
+    // Close modal immediately
+    setShowReprintInvoice(false);
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    
+    if (!printWindow) {
+      alert('No se pudo abrir la ventana de impresión. Por favor, permite las ventanas emergentes.');
+      return;
+    }
+    
+    // Función segura para formatear fechas (igual que POS)
+    const safeFormatDate = (date) => {
+      if (!date) return 'N/A';
+      try {
+        let dateObj;
+        
+        if (typeof date === 'string') {
+          if (date.includes('T')) {
+            dateObj = new Date(date);
+          } else {
+            dateObj = new Date(date.replace(' ', 'T'));
+          }
+        } else {
+          dateObj = new Date(date);
+        }
+          
+        if (isNaN(dateObj.getTime())) return 'N/A';
+        
+        return dateObj.toLocaleString('es-EC', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch {
+        return 'N/A';
+      }
+    };
+
+    // Función para formatear moneda (igual que POS)
+    const formatCurrency = (amount) => {
+      return Number(amount).toLocaleString('es-EC', {
+        style: 'currency',
+        currency: 'USD'
+      })
+    };
+
+    // Calcular totales de IVA (misma lógica que POS)
+    const calculateTotals = () => {
+      if (reprintSale.subtotalNeto !== undefined && reprintSale.ivaTotal !== undefined) {
+        return {
+          subtotalSinIVA: Number(reprintSale.subtotalNeto),
+          totalIVA: Number(reprintSale.ivaTotal),
+          totalConIVA: Number(reprintSale.subtotalNeto) + Number(reprintSale.ivaTotal),
+        }
+      }
+
+      let subtotalSinIVA = 0
+      let totalIVA = 0
+
+      reprintSale.items?.forEach(item => {
+        const precioUnit = Number(item.precio_unit) || 0
+        const cantidad = Number(item.cantidad) || 0
+        const taxRate = Number(item.taxRateApplied) || 0
+        
+        const ivaUnitario = precioUnit * taxRate
+        const ivaTotalProducto = ivaUnitario * cantidad
+        const subtotalNetoProducto = precioUnit * cantidad - ivaTotalProducto
+        
+        subtotalSinIVA += subtotalNetoProducto
+        totalIVA += ivaTotalProducto
+      })
+
+      const totalConIVA = subtotalSinIVA + totalIVA
+
+      return { 
+        subtotalSinIVA, 
+        totalIVA, 
+        totalConIVA
+      }
+    };
+
+    // Calcular información de crédito (misma lógica que POS)
+    const getCreditInfo = () => {
+      const creditPayment = reprintSale.payments?.find(p => p.paymentMethod === 'CREDIT')
+      if (!creditPayment) return null
+
+      const cashPayments = reprintSale.payments?.filter(p => p.paymentMethod !== 'CREDIT') || []
+      const totalCash = cashPayments.reduce((sum, p) => sum + Number(p.amount), 0)
+      
+      const pendingBalance = Number(reprintSale.total) - totalCash
+      const interestAmount = Number(reprintSale.creditInterestAmount || 0)
+      const totalCredit = pendingBalance + interestAmount
+
+      return {
+        pendingBalance,
+        interestAmount,
+        interestType: reprintSale.creditInterestType,
+        totalCredit,
+        installments: reprintSale.creditInstallments || []
+      }
+    };
+
+    const { subtotalSinIVA, totalIVA, totalConIVA } = calculateTotals();
+    const creditInfo = getCreditInfo();
+
+    // Generate the HTML content for the invoice (igual diseño que POS)
+    const invoiceHTML = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Factura #${reprintSale.id}</title>
+          <style>
+            @page {
+              margin: 20px;
+              size: auto;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              font-size: 12px;
+              margin: 0;
+              padding: 20px;
+              line-height: 1.4;
+              background: white;
+            }
+            .max-w-2xl {
+              max-width: 800px;
+              margin: 0 auto;
+            }
+            .bg-white {
+              background: white;
+            }
+            .border-b-2 {
+              border-bottom: 2px solid;
+            }
+            .border-gray-900 {
+              border-color: #111827;
+            }
+            .pb-4 {
+              padding-bottom: 16px;
+            }
+            .mb-4 {
+              margin-bottom: 16px;
+            }
+            .flex {
+              display: flex;
+            }
+            .items-start {
+              align-items: flex-start;
+            }
+            .justify-between {
+              justify-content: space-between;
+            }
+            .flex-1 {
+              flex: 1;
+            }
+            .text-2xl {
+              font-size: 24px;
+            }
+            .font-bold {
+              font-weight: bold;
+            }
+            .text-sm {
+              font-size: 14px;
+            }
+            .text-gray-600 {
+              color: #4b5563;
+            }
+            .space-y-1 > div + div {
+              margin-top: 4px;
+            }
+            .text-right {
+              text-align: right;
+            }
+            .text-lg {
+              font-size: 18px;
+            }
+            .text-gray-700 {
+              color: #374151;
+            }
+            .font-semibold {
+              font-weight: 600;
+            }
+            .mb-1 {
+              margin-bottom: 4px;
+            }
+            .text-xs {
+              font-size: 12px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 16px;
+            }
+            th, td {
+              padding: 8px;
+              text-align: left;
+              border-bottom: 1px solid #e5e7eb;
+            }
+            th {
+              font-weight: 600;
+              background-color: #f9fafb;
+              font-size: 12px;
+              text-transform: uppercase;
+            }
+            .text-center {
+              text-align: center;
+            }
+            .text-right {
+              text-align: right;
+            }
+            .border-gray-200 {
+              border-color: #e5e7eb;
+            }
+            .bg-gray-50 {
+              background-color: #f9fafb;
+            }
+            .p-3 {
+              padding: 12px;
+            }
+            .rounded {
+              border-radius: 8px;
+            }
+            .mb-2 {
+              margin-bottom: 8px;
+            }
+            .py-2 {
+              padding-top: 8px;
+              padding-bottom: 8px;
+            }
+            .text-orange-600 {
+              color: #ea580c;
+            }
+            .border-t-2 {
+              border-top: 2px solid;
+            }
+            .border-gray-300 {
+              border-color: #d1d5db;
+            }
+            .py-3 {
+              padding-top: 12px;
+              padding-bottom: 12px;
+            }
+            .text-green-700 {
+              color: #15803d;
+            }
+            .bg-blue-50 {
+              background-color: #eff6ff;
+            }
+            .text-blue-700 {
+              color: #1d4ed8;
+            }
+            .text-blue-600 {
+              color: #2563eb;
+            }
+            .border-blue-200 {
+              border-color: #bfdbfe;
+            }
+            .mt-3 {
+              margin-top: 12px;
+            }
+            .pt-3 {
+              padding-top: 12px;
+            }
+            .border-t {
+              border-top: 1px solid;
+            }
+            .text-xs {
+              font-size: 11px;
+            }
+            .space-y-1 > div + div {
+              margin-top: 4px;
+            }
+            .border-t {
+              border-top: 1px solid;
+            }
+            .border-gray-300 {
+              border-color: #d1d5db;
+            }
+            .pt-4 {
+              padding-top: 16px;
+            }
+            .mt-4 {
+              margin-top: 16px;
+            }
+            .text-center {
+              text-align: center;
+            }
+            @media print {
+              body { margin: 0; padding: 15px; }
+              .no-print { display: none; }
+              * {
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="max-w-2xl bg-white">
+            <div class="border-b-2 border-gray-900 pb-4 mb-4">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  ${
+                    company.logo_url
+                      ? `<img src="${company.logo_url.startsWith('http') ? company.logo_url : company.logo_url}" style="max-height: 60px; margin-bottom: 10px;" />` 
+                      : ""
+                  }
+                  <h1 class="text-2xl font-bold">${company.name}</h1>
+                  <div class="text-sm text-gray-600 space-y-1">
+                    <div>RUC/NIT: ${company.tax_id}</div>
+                    <div>${company.address}</div>
+                    <div>Tel: ${company.phone}</div>
+                    ${company.email ? `<div>Email: ${company.email}</div>` : ""}
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm text-gray-600 mb-2">FACTURA</div>
+                  <div class="text-lg font-bold">#${reprintSale.id}</div>
+                  <div class="text-sm text-gray-600 mt-2">
+                    <div>Fecha: ${safeFormatDate(reprintSale.fecha || reprintSale.createdAt)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <div class="text-sm font-semibold text-gray-700 mb-1">CLIENTE:</div>
+              <div class="text-sm">
+                ${
+                  reprintSale.cliente || reprintSale.client
+                    ? `
+                    <div class="font-medium">${reprintSale.cliente?.nombre || reprintSale.client?.nombre}</div>
+                    ${(reprintSale.cliente?.identificacion || reprintSale.client?.identificacion) ? `<div class="text-gray-600">CI/RUC: ${reprintSale.cliente?.identificacion || reprintSale.client?.identificacion}</div>` : ""}
+                    ${(reprintSale.cliente?.direccion || reprintSale.client?.direccion) ? `<div class="text-gray-600">Dirección: ${reprintSale.cliente?.direccion || reprintSale.client?.direccion}</div>` : ""}
+                    ${(reprintSale.cliente?.telefono || reprintSale.client?.telefono) ? `<div class="text-gray-600">Tel: ${reprintSale.cliente?.telefono || reprintSale.client?.telefono}</div>` : ""}
+                  `
+                    : `<div class="text-gray-600">Cliente general</div>` 
+                }
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <table>
+                <thead>
+                  <tr class="border-b border-gray-200">
+                    <th>Producto</th>
+                    <th class="text-center">Cant.</th>
+                    <th class="text-right">P. Unit.</th>
+                    <th class="text-right">IVA</th>
+                    <th class="text-right">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${reprintSale.items
+                    ?.map(
+                      (item) => `
+                      <tr class="border-b border-gray-200">
+                        <td>
+                          <div class="font-medium">
+                            ${item.product?.nombre || item.gasType?.nombre || item.nombre || 'Producto'}
+                          </div>
+                          ${item.recibio_envase ? `<div class="text-xs text-green-600">Envase recibido</div>` : ""}
+                        </td>
+                        <td class="text-center">${item.cantidad}</td>
+                        <td class="text-right">${formatCurrency(item.precio_unit || item.precio_unitario)}</td>
+                        <td class="text-right">
+                          ${Number(item.taxRateApplied) > 0 
+                            ? `${(Number(item.taxRateApplied) * 100).toFixed(1)}%` 
+                            : '0%'
+                          }
+                        </td>
+                        <td class="text-right font-medium">
+                          ${formatCurrency(item.subtotal)}
+                        </td>
+                      </tr>
+                      `
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mb-4">
+              <div style="display: flex; justify-content: flex-end;">
+                <div style="width: 288px;">
+                  <div class="bg-gray-50 p-3 rounded mb-2">
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;">
+                      <span style="color: #374151;">Subtotal sin IVA:</span>
+                      <span class="font-semibold">${formatCurrency(subtotalSinIVA)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;">
+                      <span style="color: #374151;">IVA Total:</span>
+                      <span class="font-semibold text-orange-600">+${formatCurrency(totalIVA)}</span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #d1d5db; font-weight: bold; font-size: 18px;">
+                      <span>TOTAL:</span>
+                      <span class="text-green-700">${formatCurrency(totalConIVA)}</span>
+                    </div>
+                  </div>
+                  
+                  ${
+                    creditInfo
+                      ? `
+                    <div class="bg-blue-50 p-3 rounded">
+                      <div class="text-sm font-semibold text-blue-700 mb-3">DETALLE DE CRÉDITO:</div>
+                      
+                      <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px;">
+                        <span style="color: #374151;">Saldo pendiente:</span>
+                        <span class="font-semibold">${formatCurrency(creditInfo.pendingBalance)}</span>
+                      </div>
+                      
+                      ${
+                        creditInfo.interestAmount > 0
+                          ? `
+                        <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px;">
+                          <span style="color: #374151;">
+                            ${creditInfo.interestType === 'PORCENTAJE' 
+                              ? `Interés (${creditInfo.interestAmount}%):` 
+                              : 'Interés:'
+                            }
+                          </span>
+                          <span class="font-semibold text-orange-600">
+                            +${formatCurrency(creditInfo.interestAmount)}
+                          </span>
+                        </div>
+                        `
+                          : ""
+                      }
+              
+                      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid #bfdbfe; font-weight: bold; color: #1d4ed8;">
+                        <span>Total crédito:</span>
+                        <span>${formatCurrency(creditInfo.totalCredit)}</span>
+                      </div>
+                      
+                      ${
+                        creditInfo.installments.length > 0
+                          ? `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #bfdbfe;">
+                          <div class="text-xs font-semibold text-blue-600 mb-2">Plan de pagos (${creditInfo.installments.length} cuotas):</div>
+                          <div class="space-y-1">
+                            ${creditInfo.installments
+                              .map(
+                                (installment, index) => `
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #4b5563;">
+                                  <span>Cuota ${installment.installmentNumber} (${safeFormatDate(installment.dueDate)}):</span>
+                                  <span class="font-semibold">${formatCurrency(installment.amountDue)}</span>
+                                </div>
+                                `
+                              )
+                              .join("")}
+                          </div>
+                        </div>
+                        `
+                          : ""
+                      }
+                    </div>
+                  `
+                      : ""
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <div class="text-sm font-semibold text-gray-700 mb-2">FORMA DE PAGO:</div>
+              <div class="text-sm space-y-1">
+                ${reprintSale.payments
+                  ?.map(
+                    (payment, index) => `
+                    <div style="display: flex; justify-content: space-between;">
+                      <span>${
+                        payment.paymentMethod === 'CASH' 
+                          ? 'Efectivo' 
+                          : payment.paymentMethod === 'CREDIT_CARD' 
+                          ? 'Tarjeta' 
+                          : payment.paymentMethod === 'TRANSFER' 
+                          ? 'Transferencia' 
+                          : 'Crédito'
+                      }:</span>
+                      <span>${formatCurrency(payment.amount)}</span>
+                    </div>
+                  `
+                  )
+                  .join("")}
+              </div>
+            </div>
+
+            <div style="border-top: 1px solid #d1d5db; padding-top: 16px; margin-top: 16px; text-align: center; font-size: 12px; color: #4b5563;">
+              <div>Gracias por su compra</div>
+              <div style="margin-top: 4px;">Esta factura es un documento válido para fines fiscales</div>
+            </div>
+          </div>
+          
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                window.onafterprint = function() {
+                  window.close();
+                };
+                // Fallback for browsers that don't support onafterprint
+                setTimeout(function() {
+                  window.close();
+                }, 1000);
+              }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+    
+    // Write the HTML to the new window
+    printWindow.document.write(invoiceHTML);
+    printWindow.document.close();
+  };
+
+  // Load sales data
+  const loadSales = useCallback(async () => {
+    if (!isAdmin) return;
+    
+    if (!validateDates()) {
+      return;
+    }
+    
+    setLoadingSales(true);
+    setErrorSales('');
+    setSalesPage(1); // Reset page when loading new data
+    try {
+      const params = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+        ...(metodoPago && { metodo_pago: metodoPago }),
+        ...(sellerId && { user_id: sellerId })
+      });
+      
+      const res = await fetch(`${API_URL}/reports/sales?${params}`, { 
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData?.error || 'Error al cargar las ventas');
+      }
+      
+      const data = await res.json();
+      setSales(Array.isArray(data) ? data : (data.data || []));
+    } catch (error) {
+      console.error('Error loading sales:', error);
+      setErrorSales(error.message);
+    } finally {
+      setLoadingSales(false);
+    }
+  }, [isAdmin, startDate, endDate, metodoPago, sellerId, token, validateDates]);
+
+  // Aplicar filtros automáticamente cuando cambie cualquier valor
+  useEffect(() => {
+    if (!isAdmin || !validateDates()) return;
+    loadSales();
+  }, [startDate, endDate, metodoPago, sellerId, isAdmin, validateDates, loadSales]);
+
+  // Load initial data
+  useEffect(() => {
+    if (!isAdmin) return;
+    loadUsers();
+    loadCompany();
+    // Cargar ventas automáticamente con las fechas por defecto (hoy)
+    loadSales();
+  }, [isAdmin, loadUsers, loadCompany]);
+
+  // Handle export to Excel
+  const handleExportExcel = useCallback(async () => {
+    if (!validateDates()) {
+      return;
+    }
+    
+    try {
+      const params = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+        ...(metodoPago && { metodo_pago: metodoPago }),
+        ...(sellerId && { user_id: sellerId })
+      });
+      
+      const res = await fetch(`${API_URL}/reports/sales/export?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData?.error || 'Error al exportar las ventas');
+      }
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `ventas_${startDate}_a_${endDate}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      setErrorSales(error.message || 'Error al exportar el archivo Excel');
+    }
+  }, [startDate, endDate, metodoPago, sellerId, token, validateDates]);
+
+  // Show loading state
+  if (loadingSales) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Cargando reportes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied for non-admin users
+  if (!isAdmin) {
+    return (
+      <div className="p-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="p-4 border rounded-xl bg-white text-center text-red-500">
+            Acceso denegado. Solo los administradores pueden ver los reportes.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-800">Reportes</h1>
+          <div className="text-sm text-gray-500">
+            {new Date().toLocaleDateString('es-ES', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </div>
+        </div>
+
+        {/* Report Types */}
+       {/* Report Types - Ancho completo */}
+<div className="grid grid-cols-1 gap-6">
+  {/* Sales Report Card */}
+  <ReportCard title="📊 Reporte de Ventas" className="hover:shadow-lg transition-shadow cursor-pointer">
+    <div className="space-y-4">
+      <p className="text-gray-600">
+        Consulta el reporte detallado de ventas con filtros por fecha, método de pago y vendedor.
+      </p>
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-500">
+          <div>• Filtrado por fechas</div>
+          <div>• Exportación a Excel</div>
+          <div>• Reimpresión de facturas</div>
+        </div>
+        <button
+          onClick={() => window.location.href = '/reports'}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+        >
+          Ver Reporte de Ventas
+        </button>
+      </div>
+    </div>
+  </ReportCard>
+</div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-lg border">
+            <div className="text-sm text-gray-600">Ventas del Día</div>
+            <div className="text-2xl font-bold text-gray-900">
+              ${sales.reduce((sum, sale) => sum + (parseFloat(sale.total) || 0), 0).toLocaleString()}
+            </div>
+          </div>
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="text-sm text-blue-600">Total Ventas</div>
+            <div className="text-2xl font-bold text-blue-900">
+              {sales.length}
+            </div>
+          </div>
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <div className="text-sm text-green-600">Reporte Disponible</div>
+            <div className="text-2xl font-bold text-green-900">
+              0
+            </div>
+          </div>
+          <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+            <div className="text-sm text-purple-600">Exportaciones</div>
+            <div className="text-2xl font-bold text-purple-900">
+              Excel + CSV
+            </div>
+          </div>
+        </div>
+
+        {/* Sales Report Section (Compact) */}
+        <ReportCard title="📈 Ventas Recientes">
+          <div className="mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
+                <input 
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full border rounded-md p-2 text-sm text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Fin</label>
+                <input 
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full border rounded-md p-2 text-sm text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Método de Pago</label>
+                <select 
+                  value={metodoPago}
+                  onChange={(e) => setMetodoPago(e.target.value)}
+                  className="w-full border rounded-md p-2 text-sm text-gray-900"
+                  style={{ color: '#111827' }}
+                >
+                  <option value="" style={{ color: '#111827' }}>Todos</option>
+                  <option value="CASH" style={{ color: '#111827' }}>Efectivo</option>
+                  <option value="TRANSFER" style={{ color: '#111827' }}>Transferencia</option>
+                  <option value="CREDIT" style={{ color: '#111827' }}>Crédito</option>
+                  <option value="CREDIT_CARD" style={{ color: '#111827' }}>Tarjeta de Crédito</option>
+
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vendedor</label>
+                <select 
+                  value={sellerId}
+                  onChange={(e) => setSellerId(e.target.value)}
+                  className="w-full border rounded-md p-2 text-sm text-gray-900"
+                  style={{ color: '#111827' }}
+                >
+                  <option value="" style={{ color: '#111827' }}>Todos</option>
+                  {users.map(user => (
+                    <option key={user.id} value={user.id} style={{ color: '#111827' }}>
+                      {user.nombre || user.name || `Usuario ${user.id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={handleExportExcel}
+                disabled={loadingSales}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Exportar a Excel
+              </button>
+            </div>
+          </div>
+
+          {errorSales && (
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+              <p className="font-bold">Error</p>
+              <p>{errorSales}</p>
+            </div>
+          )}
+
+          <div className="overflow-x-auto">
+            {sales.length === 0 ? (
+              <div className="text-center py-8 bg-gray-50 rounded-lg">
+                <div className="text-gray-500">No hay ventas recientes para mostrar</div>
+              </div>
+            ) : (
+              <div>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Fecha
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Cliente
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Productos
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Cantidad
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Precio
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Pago
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Vendedor
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {salesPageItems.flatMap((sale, saleIndex) => [
+                      // Main sale row
+                      <tr key={sale.id} className="bg-gray-50">
+                        <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {sale.fechaFormatted || 'N/A'}
+                        </td>
+                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                          {sale.cliente?.nombre || 'Cliente no especificado'}
+                        </td>
+                        <td colSpan="3" className="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {sale.items?.length || 0} {sale.items?.length === 1 ? 'producto' : 'productos'}
+                        </td>
+                        <td className="px-6 py-3 whitespace-nowrap text-sm font-bold text-gray-900 text-right">
+                          ${sale.total || '0.00'}
+                        </td>
+                        <td className="px-6 py-3 whitespace-nowrap text-sm">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            sale.metodo_pago === 'EFECTIVO' 
+                              ? 'bg-green-100 text-green-800' 
+                              : sale.metodo_pago === 'TARJETA' 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {sale.metodo_pago || 'OTRO'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                          {sale.vendedor?.nombre || 'N/A'}
+                        </td>
+                        <td className="px-6 py-3 whitespace-nowrap text-center">
+                          <button
+                            onClick={() => handleReprintInvoice(sale.id)}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1 mx-auto"
+                            title="Reimprimir factura"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            Reimprimir
+                          </button>
+                        </td>
+                      </tr>,
+                      // Item rows
+                      ...(sale.items?.map((item, itemIndex) => (
+                        <tr key={`${sale.id}-${itemIndex}`} className="border-t border-gray-200">
+                          <td colSpan="2" className="px-6 py-2 text-xs text-gray-500">
+                            {/* Empty for alignment */}
+                          </td>
+                          <td className="px-6 py-2 text-sm text-gray-900">
+                            {item.nombre}
+                          </td>
+                          <td className="px-6 py-2 text-sm text-gray-900 text-right">
+                            {item.cantidad}
+                          </td>
+                          <td className="px-6 py-2 text-sm text-gray-900 text-right">
+                            ${item.precio_unitario || '0.00'}
+                          </td>
+                          <td className="px-6 py-2 text-sm text-gray-900 text-right">
+                            ${item.subtotal || '0.00'}
+                          </td>
+                          <td colSpan="3" className="px-6 py-2 text-xs text-gray-500">
+                            {/* Empty for alignment */}
+                          </td>
+                        </tr>
+                      )) || [])
+                    ])}
+                  </tbody>
+                  <tfoot className="bg-gray-50">
+                    <tr>
+                      <td colSpan="6" className="px-6 py-3 text-right text-sm font-medium text-gray-500">
+                        Total:
+                      </td>
+                      <td className="px-6 py-3 text-right text-sm font-bold text-gray-900">
+                        ${sales.reduce((sum, sale) => sum + (parseFloat(sale.total) || 0), 0).toLocaleString()}
+                      </td>
+                      <td colSpan="2"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+                
+                {/* Paginación */}
+                {salesTotalPages > 1 && (
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                      Mostrando {(salesPage - 1) * salesPageSize + 1} a {Math.min(salesPage * salesPageSize, sales.length)} de {sales.length} ventas
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setSalesPage(p => Math.max(1, p - 1))}
+                        disabled={salesPage === 1}
+                        className="h-9 px-3 border rounded disabled:opacity-50"
+                      >
+                        Anterior
+                      </button>
+                      <button
+                        onClick={() => setSalesPage(p => Math.min(salesTotalPages, p + 1))}
+                        disabled={salesPage === salesTotalPages}
+                        className="h-9 px-3 border rounded disabled:opacity-50"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </ReportCard>
+
+        {/* Reprint Invoice Modal */}
+        {showReprintInvoice && reprintSale && company && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-xl overflow-auto">
+              <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+                <h3 className="text-lg font-bold">Reimprimir Factura #{String(reprintSale.id).padStart(6, '0')}</h3>
+                <button
+                  onClick={() => setShowReprintInvoice(false)}
+                  className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="p-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-800 mb-2">Resumen de Venta</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Fecha:</span>
+                      <div className="font-medium">{new Date(reprintSale.createdAt || reprintSale.fecha).toLocaleString('es-EC')}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Cliente:</span>
+                      <div className="font-medium">{reprintSale.cliente?.nombre || reprintSale.client?.nombre || 'Cliente no especificado'}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Método de Pago:</span>
+                      <div className="font-medium">
+                        {reprintSale.payments?.map(p => 
+                          p.paymentMethod === 'CASH' ? 'Efectivo' : 
+                          p.paymentMethod === 'CREDIT_CARD' ? 'Tarjeta' : 
+                          p.paymentMethod === 'TRANSFER' ? 'Transferencia' : 
+                          p.paymentMethod === 'CREDIT' ? 'Crédito' : p.paymentMethod
+                        ).join(', ') || reprintSale.metodo_pago || 'No especificado'}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Vendedor:</span>
+                      <div className="font-medium">{reprintSale.user?.nombre || reprintSale.vendedor?.nombre || 'N/A'}</div>
+                    </div>
+                  </div>
+                  
+                  {/* Resumen de items con precio */}
+                  <div className="mt-4 pt-4 border-t">
+                    <h5 className="font-semibold text-gray-700 mb-2">Productos:</h5>
+                    <div className="space-y-2">
+                      {reprintSale.items?.map((item, index) => (
+                        <div key={index} className="flex justify-between text-sm">
+                          <span className="text-gray-600">
+                            {item.product?.nombre || item.gasType?.nombre || item.nombre} x {item.cantidad}
+                          </span>
+                          <span className="font-medium">
+                            ${Number(item.precio_unit || item.precio_unitario || 0).toLocaleString('es-EC')} c/u
+                          </span>
+                        </div>
+                      )) || <div className="text-sm text-gray-500">No hay productos</div>}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold">Total:</span>
+                      <span className="text-lg font-bold text-blue-600">${Number(reprintSale.total).toLocaleString('es-EC')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="sticky bottom-0 bg-white border-t p-4 flex justify-center gap-3">
+                <button
+                  onClick={() => setShowReprintInvoice(false)}
+                  className="h-10 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handlePrintReprintInvoice}
+                  className="h-10 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  🖨️ Imprimir Factura
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

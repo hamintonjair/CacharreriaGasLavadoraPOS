@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelos para negocio de Gas y Cacharrería
+model User {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  username  String   @unique
+  password  String
+  role      String   @default("VENDEDOR") // ADMIN, VENDEDOR
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sales     Sale[]
+  rentals   Rental[]
+
+  @@map("users")
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  nombre   String    @unique
+  products Product[]
+}
+
+model Client {
+  id           Int       @id @default(autoincrement())
+  nombre       String
+  identificacion String?  @unique // Cédula/RUC
+  telefono     String?
+  direccion    String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  sales        Sale[]
+  rentals      Rental[]
+
+  @@map("clients")
+}
+
+model Product {
+  id            Int        @id @default(autoincrement())
+  nombre        String
+  codigo_barras String?    @unique
+  precio_venta  Decimal    @db.Decimal(10, 2)
+  costo         Decimal    @db.Decimal(10, 2)
+  taxRate       Decimal    @default(0) @db.Decimal(5, 4) // Tasa de IVA (ej: 0.19 para 19%)
+  stock         Int        @default(0)
+  stock_minimo  Int        @default(5)
+  categoryId    Int
+  category      Category   @relation(fields: [categoryId], references: [id])
+
+  saleItems     SaleItem[]
+}
+
+// MODELO CRÍTICO: Gestión de Gas
+model GasType {
+  id            Int        @id @default(autoincrement())
+  nombre        String     @unique // Ej: "Cilindro 40lb"
+  stock_llenos  Int        @default(0)
+  stock_vacios  Int        @default(0) // Envases vacíos en bodega
+  precio_venta  Decimal    @db.Decimal(10, 2) // Precio del líquido
+  precio_envase Decimal    @db.Decimal(10, 2) // Precio del depósito (casco)
+
+  saleItems     SaleItem[]
+}
+
+model Sale {
+  id           Int       @id @default(autoincrement())
+  total        Decimal   @db.Decimal(10, 2)
+  paymentStatus String   @default("PAID") // PAID, PENDING, PARTIAL
+  totalPaid    Decimal   @default(0) @db.Decimal(10, 2)
+  creditInterestAmount Decimal @default(0) @db.Decimal(10, 2) // 🔥 Monto total de interés aplicado al crédito
+  creditInterestType   String?  // 🔥 Tipo de interés: PORCENTAJE o VALOR
+  clientId     Int       // Obligatorio para crédito
+  userId       Int
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  client       Client    @relation(fields: [clientId], references: [id])
+  user         User      @relation(fields: [userId], references: [id])
+  payments     Payment[] // Nueva relación
+  creditInstallments CreditInstallment[] // Agregar esta relación
+
+  items        SaleItem[] // ← AGREGA ESTA LÍNEA
+  @@map("sales")
+}
+
+model Payment {
+  id           Int       @id @default(autoincrement())
+  saleId       Int
+  amount       Decimal   @db.Decimal(10, 2)
+  paymentMethod String   // CASH, TRANSFER, CREDIT_CARD, CREDIT
+  date         DateTime  @default(now())
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  sale         Sale      @relation(fields: [saleId], references: [id])
+
+  @@map("payments")
+}
+
+model SaleItem {
+  id          Int       @id @default(autoincrement())
+  saleId      Int
+  sale        Sale      @relation(fields: [saleId], references: [id])
+
+  // Relaciones opcionales (Item puede ser Producto O Gas)
+  productId   Int?
+  product     Product?  @relation(fields: [productId], references: [id])
+
+  gasTypeId   Int?
+  gasType     GasType?  @relation(fields: [gasTypeId], references: [id])
+
+  cantidad    Int
+  precio_unit Decimal   @db.Decimal(10, 2)
+  subtotal    Decimal   @db.Decimal(10, 2)
+
+  // Campos de IVA
+  taxRateApplied Decimal @default(0) @db.Decimal(5, 4) // Tasa de IVA aplicada (ej: 0.19 para 19%)
+  taxAmount     Decimal @default(0) @db.Decimal(10, 2) // Monto total de IVA para este ítem
+
+  // Lógica Gas: ¿El cliente entregó envase vacío?
+  recibio_envase Boolean @default(false)
+}
+
+// Modelo de Empresa/Datos de la Compañía
+model Company {
+  id        Int       @id @default(1)
+  name      String
+  tax_id    String    // RUC/NIT
+  address   String
+  phone     String
+  email     String?
+  logo_url  String?   // URL del logo en el servidor
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("companies")
+}
+
+// Modelo de Lavadoras para Alquiler
+model WashingMachine {
+  id                  Int      @id @default(autoincrement())
+  description         String   // Ej: "Lavadora Samsung 8kg"
+  pricePerHour        Decimal  @db.Decimal(10, 2) // Precio por hora de alquiler
+  initialQuantity     Int      @default(1) // Cantidad inicial de lavadoras de este modelo
+  availableQuantity   Int      @default(1) // Cantidad actualmente disponible para alquiler
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  rentals             Rental[]
+
+  @@map("washing_machines")
+}
+
+// Modelo de Alquileres
+model Rental {
+  id                   Int       @id @default(autoincrement())
+  washingMachineId     Int
+  washingMachine       WashingMachine @relation(fields: [washingMachineId], references: [id])
+  clientId             Int
+  client               Client @relation(fields: [clientId], references: [id])
+  rentalPrice          Decimal   @db.Decimal(10, 2) // Precio total cobrado
+  rentalDate           DateTime  @default(now()) @map("rental_date") // Fecha/hora de inicio
+  scheduledReturnDate  DateTime  @map("scheduled_return_date") // Fecha/hora programada de entrega
+  actualReturnDate     DateTime? @map("actual_return_date") // Fecha/hora real de entrega
+  status               RentalStatus @default(RENTED) // Estado del alquiler
+  userId               Int       // Usuario que registró el alquiler
+  user                 User      @relation(fields: [userId], references: [id])
+  hoursRented          Int       @default(1) // Cantidad de horas alquiladas
+  notes                String?   // Notas adicionales
+  // 🔥 NUEVOS CAMPOS PARA ALQUILER POR AMANECIDA
+  rentalType           String?   @map("rental_type") // "HOUR" o "OVERNIGHT"
+  overnightAdditionalPrice Decimal? @db.Decimal(10, 2) @map("overnight_additional_price") // Precio adicional para amanecida
+  baseHourlyPrice      Decimal?  @db.Decimal(10, 2) @map("base_hourly_price") // Precio base por hora
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  @@map("rentals")
+}
+
+// Modelo de Cuotas de Crédito
+model CreditInstallment {
+  id               Int              @id @default(autoincrement())
+  saleId           Int
+  sale             Sale             @relation(fields: [saleId], references: [id])
+  installmentNumber Int             // Número de cuota (1, 2, 3, ...)
+  amountDue        Decimal          @db.Decimal(10, 2) // Valor de la cuota
+  dueDate          DateTime         // Fecha de vencimiento
+  status           InstallmentStatus @default(PENDING)
+  paidAt           DateTime?        // Fecha de pago
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@map("credit_installments")
+}
+
+// Enum para estados de cuotas
+enum InstallmentStatus {
+  PENDING  // Pendiente de pago
+  PAID     // Pagada
+  OVERDUE  // Vencida
+}
+
+// Enum para estados de alquiler
+enum RentalStatus {
+  RENTED    // Alquilada actualmente
+  OVERDUE   // Atrasada (pasó la fecha programada)
+  DELIVERED // Devuelta
+  CANCELLED // Cancelada
+}
