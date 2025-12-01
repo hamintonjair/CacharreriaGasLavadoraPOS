@@ -27,9 +27,9 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: (req, file) => {
     return {
-      folder: 'company-logos',
+      folder: 'company2-logos',
       allowed_formats: ['jpg', 'jpeg', 'png'],
-      public_id: 'company-logo',
+      public_id: 'company2-logo',
       overwrite: true,
       resource_type: 'image'
     };

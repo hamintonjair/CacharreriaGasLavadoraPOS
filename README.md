@@ -201,7 +201,7 @@ npm install cloudinary multer-storage-cloudinary
 
 **4. Configuración automática:**
 - El sistema configura Cloudinary automáticamente
-- Los logos se suben a la carpeta `company-logos`
+- Los logos se suben a la carpeta `company2-logos`
 - Cada nuevo logo sobrescribe el anterior
 - La URL se guarda en la base de datos
 
@@ -218,15 +218,15 @@ npm install cloudinary multer-storage-cloudinary
 
 **URL típica generada:**
 ```
-https://res.cloudinary.com/tu_cloud_name/image/upload/v1234567890/company-logos/company-logo.jpg
+https://res.cloudinary.com/tu_cloud_name/image/upload/v1234567890/company2-logos/company2-logo.jpg
 ```
 
 ### 📁 Estructura en Cloudinary
 
 ```
 Cloudinary Media Library:
-├── company-logos/          # Carpeta automática
-│   └── company-logo.jpg    # Logo de la empresa
+├── company2-logos/          # Carpeta automática
+│   └── company2-logo.jpg    # Logo de la empresa
 └── (otros archivos si los hay)
 ```
 
@@ -242,7 +242,7 @@ Cloudinary Media Library:
 **Ver logo en Cloudinary:**
 1. Ingresa a `https://cloudinary.com/console`
 2. Ve a **Media Library**
-3. Navega a la carpeta `company-logos`
+3. Navega a la carpeta `company2-logos`
 4. Verás tu logo con opciones de transformación
 
 ### ⚙️ Configuración Técnica
@@ -262,9 +262,9 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'company-logos',
+    folder: 'company2-logos',
     allowed_formats: ['jpg', 'jpeg', 'png'],
-    public_id: 'company-logo',
+    public_id: 'company2-logo',
     overwrite: true,
     resource_type: 'image'
   }

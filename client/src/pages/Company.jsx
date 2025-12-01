@@ -148,7 +148,7 @@ export default function Company() {
                   className="w-24 h-24 object-contain border rounded-lg"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = "https://res.cloudinary.com/dotrm9j1u/image/upload/v1764612009/company-logos/company-logo.jpg";
+                    e.target.src = "https://res.cloudinary.com/dotrm9j1u/image/upload/v1764612009/company2-logos/company2-logo.jpg";
                   }}
                 />
               ) : (
