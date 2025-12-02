@@ -50,6 +50,9 @@ export default function POS() {
   const [gasTypes, setGasTypes] = useState([]);
   const [washingMachines, setWashingMachines] = useState([]);
   const [clients, setClients] = useState([]);
+  const [filteredClients, setFilteredClients] = useState([]);
+  const [clientSearch, setClientSearch] = useState("");
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
 
   const [cart, setCart] = useState([]); // { key, type: 'product'|'gas', id, nombre, precio, cantidad, recibio_envase?, precio_base?, precio_envase? }
   const [selectedClient, setSelectedClient] = useState(null); // { id, nombre, identificacion }
@@ -667,14 +670,45 @@ const handlePrintInvoice = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Error cargando clientes");
       setClients(data);
-      // Set default client (Cliente Genérico)
-      const defaultClient = data.find((c) => c.id === 1);
-      if (defaultClient) {
-        setSelectedClient(defaultClient);
-      }
+      setFilteredClients(data);
+      // No seleccionar cliente por defecto - debe buscarlo obligatoriamente
+      setSelectedClient(null);
+      setClientSearch("");
     } catch (e) {
       console.error("Error loading clients:", e);
     }
+  };
+
+  // Filtrar clientes según búsqueda
+  useEffect(() => {
+    if (!clientSearch.trim()) {
+      setFilteredClients(clients);
+      setShowClientDropdown(false);
+      return;
+    }
+
+    const filtered = clients.filter(
+      (client) =>
+        client.nombre.toLowerCase().includes(clientSearch.toLowerCase()) ||
+        (client.identificacion &&
+          client.identificacion.toLowerCase().includes(clientSearch.toLowerCase()))
+    );
+    
+    setFilteredClients(filtered);
+    setShowClientDropdown(filtered.length > 0);
+  }, [clientSearch, clients]);
+
+  // Manejar selección de cliente
+  const handleClientSelect = (client) => {
+    setSelectedClient(client);
+    setClientSearch(`${client.nombre} ${client.identificacion ? `(${client.identificacion})` : ""}`);
+    setShowClientDropdown(false);
+  };
+
+  // Manejar cambios en el campo de búsqueda
+  const handleClientSearchChange = (e) => {
+    setClientSearch(e.target.value);
+    setShowClientDropdown(true);
   };
 
   const fetchCompany = async () => {
@@ -1132,6 +1166,12 @@ const handlePrintInvoice = () => {
       return;
     }
 
+    // Validar que se haya seleccionado un cliente (obligatorio)
+    if (!selectedClient) {
+      toast("Debe seleccionar un cliente para continuar", "error");
+      return;
+    }
+
     // 🔥 CORRECCIÓN: Calcular pagos en efectivo/tarjeta/transferencia
     const cashPayments = payments.filter((p) => p.method !== "CREDIT");
     const totalPaidCash = cashPayments.reduce(
@@ -1266,7 +1306,7 @@ const handlePrintInvoice = () => {
 
       const body = {
         userId: user.id,
-        clientId: selectedClient?.id || 1,
+        clientId: selectedClient?.id, // Obligatorio seleccionar cliente
         items: itemsConIVA, // 🔥 Enviar items con IVA calculado
         ivaTotal: ivaTotalFrontend,
         subtotalNeto: totalFrontend,
@@ -1763,24 +1803,95 @@ const handlePrintInvoice = () => {
         {/* Client Selection */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-600">Cliente:</label>
-          <select
-            value={selectedClient?.id || ""}
-            onChange={(e) => {
-              const client = clients.find(
-                (c) => c.id === Number(e.target.value)
-              );
-              setSelectedClient(client || null);
-            }}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">Seleccionar cliente...</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.nombre}{" "}
-                {client.identificacion ? `(${client.identificacion})` : ""}
-              </option>
-            ))}
-          </select>
+          
+          {/* Select con búsqueda integrada */}
+          <div className="relative">
+            <input
+              type="text"
+              value={clientSearch}
+              onChange={handleClientSearchChange}
+              onFocus={() => setShowClientDropdown(true)}
+              placeholder="Buscar por nombre o cédula..."
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            
+            {/* Dropdown con resultados */}
+            {showClientDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto z-50">
+                {filteredClients.length === 0 ? (
+                  <div className="px-3 py-2 text-gray-500 text-sm">
+                    No se encontraron clientes
+                  </div>
+                ) : (
+                  filteredClients.map((client) => (
+                    <div
+                      key={client.id}
+                      onClick={() => handleClientSelect(client)}
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="font-medium text-sm">{client.nombre}</div>
+                      {client.identificacion && (
+                        <div className="text-xs text-gray-500">
+                          CI/RUC: {client.identificacion}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+                
+                {/* Opción para ver todos los clientes */}
+                {filteredClients.length > 0 && (
+                  <div
+                    onClick={() => {
+                      setShowClientDropdown(false);
+                      // Mostrar select tradicional con todos los clientes
+                    }}
+                    className="px-3 py-2 text-blue-600 hover:bg-blue-50 cursor-pointer border-t border-gray-200 text-sm font-medium"
+                  >
+                    Ver todos los clientes...
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {/* Select tradicional (oculto por defecto) */}
+          {!showClientDropdown && (
+            <select
+              value={selectedClient?.id || ""}
+              onChange={(e) => {
+                const client = clients.find(
+                  (c) => c.id === Number(e.target.value)
+                );
+                setSelectedClient(client || null);
+                if (client) {
+                  setClientSearch(`${client.nombre} ${client.identificacion ? `(${client.identificacion})` : ""}`);
+                } else {
+                  setClientSearch("");
+                }
+              }}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Seleccionar cliente...</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.nombre}{" "}
+                  {client.identificacion ? `(${client.identificacion})` : ""}
+                </option>
+              ))}
+            </select>
+          )}
+          
+          {selectedClient && (
+            <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+              Cliente seleccionado: {selectedClient.nombre}
+            </div>
+          )}
         </div>
       </div>
       <div className="flex-1 overflow-auto p-3 sm:p-4 space-y-3">

@@ -48,6 +48,16 @@ export default function WashingMachines() {
   // Estados generales
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  
+  // Estados para paginación
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 11;
+  
+  // Estados para paginación de alquileres
+  const [searchRentals, setSearchRentals] = useState("");
+  const [rentalsPage, setRentalsPage] = useState(1);
+  const rentalsPageSize = 10;
 
   // Después de los estados existentes, agrega:
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -440,6 +450,33 @@ export default function WashingMachines() {
     }
   };
 
+  // Filter and paginate machines
+  const filteredMachines = machines.filter(
+    (machine) =>
+      machine.description.toLowerCase().includes(search.toLowerCase()) ||
+      machine.pricePerHour.toString().includes(search.toLowerCase())
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredMachines.length / pageSize));
+  const pageItems = filteredMachines.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
+  // Filter and paginate rentals
+  const filteredRentals = activeRentals.filter(
+    (rental) =>
+      rental.washingMachine.description.toLowerCase().includes(searchRentals.toLowerCase()) ||
+      rental.client.nombre.toLowerCase().includes(searchRentals.toLowerCase()) ||
+      (rental.client.identificacion && rental.client.identificacion.toLowerCase().includes(searchRentals.toLowerCase()))
+  );
+
+  const rentalsTotalPages = Math.max(1, Math.ceil(filteredRentals.length / rentalsPageSize));
+  const rentalsPageItems = filteredRentals.slice(
+    (rentalsPage - 1) * rentalsPageSize,
+    rentalsPage * rentalsPageSize
+  );
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Alertas */}
@@ -652,156 +689,239 @@ export default function WashingMachines() {
         )}
 
         {/* Tabla de lavadoras */}
+        <div className="flex items-center gap-2 mb-4">
+          <input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Buscar lavadoras..."
+            className="h-10 border rounded-lg px-3"
+          />
+        </div>
         {machinesLoading ? (
           <div className="text-center py-8">Cargando...</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-2">Descripción</th>
-                  <th className="text-center py-2 px-2">Precio/Hora</th>
-                  <th className="text-center py-2 px-2">Stock Total</th>
-                  <th className="text-center py-2 px-2">Disponibles</th>
-                  <th className="text-center py-2 px-2">Alquiladas</th>
-                  <th className="text-center py-2 px-2">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {machines.map((machine) => (
-                  <tr key={machine.id} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-2 font-medium">
-                      {machine.description}
-                    </td>
-                    <td className="text-center py-2 px-2">
-                      ${machine.pricePerHour}
-                    </td>
-                    <td className="text-center py-2 px-2">
-                      {machine.initialQuantity}
-                    </td>
-                    <td className="text-center py-2 px-2">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          machine.availableQuantity > 0
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {machine.availableQuantity}
-                      </span>
-                    </td>
-                    <td className="text-center py-2 px-2">
-                      {machine.initialQuantity - machine.availableQuantity}
-                    </td>
-                    <td className="text-center py-2 px-2">
-                      <button
-                        onClick={() => handleEditMachine(machine)}
-                        className="h-9 px-3 rounded bg-indigo-600 text-white"
-                      >
-                        📝
-                      </button>
-                      <button
-                        onClick={() => handleDeleteMachine(machine)}
-                        className="h-9 px-3 rounded bg-red-600 text-white"
-                      >
-                        🗑️
-                      </button>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-2">Descripción</th>
+                    <th className="text-center py-2 px-2">Precio/Hora</th>
+                    <th className="text-center py-2 px-2">Stock Total</th>
+                    <th className="text-center py-2 px-2">Disponibles</th>
+                    <th className="text-center py-2 px-2">Alquiladas</th>
+                    <th className="text-center py-2 px-2">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {machines.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No hay lavadoras registradas
+                </thead>
+                <tbody>
+                  {filteredMachines.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="p-4 text-center text-gray-500">
+                        {search
+                          ? "No se encontraron lavadoras"
+                          : "No hay lavadoras registradas"}
+                      </td>
+                    </tr>
+                  ) : (
+                    pageItems.map((machine) => (
+                      <tr key={machine.id} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-2 font-medium">
+                          {machine.description}
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          ${machine.pricePerHour}
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          {machine.initialQuantity}
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              machine.availableQuantity > 0
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {machine.availableQuantity}
+                          </span>
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          {machine.initialQuantity - machine.availableQuantity}
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          <button
+                            onClick={() => handleEditMachine(machine)}
+                            className="h-9 px-3 rounded bg-indigo-600 text-white"
+                          >
+                            📝
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMachine(machine)}
+                            className="h-9 px-3 rounded bg-red-600 text-white"
+                          >
+                            🗑️
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Paginación */}
+            <div className="mt-3 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Página {page} de {totalPages} — {filteredMachines.length} elementos
               </div>
-            )}
-          </div>
+              <div className="flex gap-2">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="h-9 px-3 border rounded disabled:opacity-50"
+                >
+                  Anterior
+                </button>
+                <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="h-9 px-3 border rounded disabled:opacity-50"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 )}
       {/* Sección 2: Alquileres Activos */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">Alquileres Activos</h2>
+        
+        <div className="flex items-center gap-2 mb-4">
+          <input
+            value={searchRentals}
+            onChange={(e) => {
+              setSearchRentals(e.target.value);
+              setRentalsPage(1);
+            }}
+            placeholder="Buscar alquileres..."
+            className="h-10 border rounded-lg px-3"
+          />
+        </div>
 
         {rentalsLoading ? (
           <div className="text-center py-8">Cargando...</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 px-2">Lavadora</th>
-                  <th className="text-left py-2 px-2">Cliente</th>
-                  <th className="text-center py-2 px-2">Estado</th>
-                  <th className="text-center py-2 px-2">Entrega Programada</th>
-                  <th className="text-center py-2 px-2">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeRentals.map((rental) => (
-                  <tr key={rental.id} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-2">
-                      {rental.washingMachine.description}
-                    </td>
-                    <td className="py-2 px-2">
-                      <div>
-                        <div className="font-medium">
-                          {rental.client.nombre}
-                        </div>
-                        {rental.client.identificacion && (
-                          <div className="text-xs text-gray-500">
-                            {rental.client.identificacion}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="text-center py-2 px-2">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                          rental.status
-                        )}`}
-                      >
-                        {getStatusText(rental.status)}
-                      </span>
-                    </td>
-                    <td className="text-center py-2 px-2">
-                      {format(
-                        new Date(rental.scheduledReturnDate),
-                        "dd/MM/yyyy HH:mm",
-                        { locale: es }
-                      )}
-                    </td>
-                    <td className="text-center py-2 px-2">
-                      <button
-                        onClick={() => setShowRentalDetails(rental)}
-                        className="text-blue-600 hover:text-blue-800 mr-2"
-                      >
-                        {rental.rentalType === 'OVERNIGHT' ? 'Amanecida 🌙' : 'Por Hora 👁️'}
-                      </button>
-                      <button
-                        onClick={() => setShowExtendHours(rental)}
-                        className="text-yellow-600 hover:text-yellow-800 mr-2"
-                      >
-                        Extender ⏰
-                      </button>
-                      <button
-                        onClick={() => handleDeliverRental(rental)}
-                        className="text-green-600 hover:text-green-800"
-                      >
-                        Entregado ✅
-                      </button>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 px-2">Lavadora</th>
+                    <th className="text-left py-2 px-2">Cliente</th>
+                    <th className="text-center py-2 px-2">Estado</th>
+                    <th className="text-center py-2 px-2">Entrega Programada</th>
+                    <th className="text-center py-2 px-2">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {activeRentals.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No hay alquileres activos
+                </thead>
+                <tbody>
+                  {filteredRentals.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="p-4 text-center text-gray-500">
+                        {searchRentals
+                          ? "No se encontraron alquileres"
+                          : "No hay alquileres activos"}
+                      </td>
+                    </tr>
+                  ) : (
+                    rentalsPageItems.map((rental) => (
+                      <tr key={rental.id} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-2">
+                          {rental.washingMachine.description}
+                        </td>
+                        <td className="py-2 px-2">
+                          <div>
+                            <div className="font-medium">
+                              {rental.client.nombre}
+                            </div>
+                            {rental.client.identificacion && (
+                              <div className="text-xs text-gray-500">
+                                {rental.client.identificacion}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                              rental.status
+                            )}`}
+                          >
+                            {getStatusText(rental.status)}
+                          </span>
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          {format(
+                            new Date(rental.scheduledReturnDate),
+                            "dd/MM/yyyy HH:mm",
+                            { locale: es }
+                          )}
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          <button
+                            onClick={() => setShowRentalDetails(rental)}
+                            className="text-blue-600 hover:text-blue-800 mr-2"
+                          >
+                            {rental.rentalType === 'OVERNIGHT' ? 'Amanecida 🌙' : 'Por Hora 👁️'}
+                          </button>
+                          <button
+                            onClick={() => setShowExtendHours(rental)}
+                            className="text-yellow-600 hover:text-yellow-800 mr-2"
+                          >
+                            Extender ⏰
+                          </button>
+                          <button
+                            onClick={() => handleDeliverRental(rental)}
+                            className="text-green-600 hover:text-green-800"
+                          >
+                            Entregado ✅
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Paginación de alquileres */}
+            <div className="mt-3 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Página {rentalsPage} de {rentalsTotalPages} — {filteredRentals.length} elementos
               </div>
-            )}
-          </div>
+              <div className="flex gap-2">
+                <button
+                  disabled={rentalsPage === 1}
+                  onClick={() => setRentalsPage((p) => Math.max(1, p - 1))}
+                  className="h-9 px-3 border rounded disabled:opacity-50"
+                >
+                  Anterior
+                </button>
+                <button
+                  disabled={rentalsPage === rentalsTotalPages}
+                  onClick={() => setRentalsPage((p) => Math.min(rentalsTotalPages, p + 1))}
+                  className="h-9 px-3 border rounded disabled:opacity-50"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 

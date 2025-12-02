@@ -33,27 +33,22 @@ export default function RentalReport() {
     endDate: "",
   });
 
-  // Paginación
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalItems: 0,
-    itemsPerPage: 10,
-  });
+  // Estados para paginación (como WashingMachines.jsx)
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   // Estadísticas
   const [stats, setStats] = useState({});
 
   // Cargar alquileres
-  const loadRentals = async (page = 1) => {
+  const loadRentals = async () => {
     setLoading(true);
     setError("");
 
     try {
       const token = localStorage.getItem("auth_token");
       const params = new URLSearchParams({
-        page: page.toString(),
-        limit: pagination.itemsPerPage.toString(),
         ...(filters.status && { status: filters.status }),
         ...(filters.clientId && { clientId: filters.clientId }),
         ...(filters.startDate && { startDate: filters.startDate }),
@@ -72,7 +67,6 @@ export default function RentalReport() {
 
       const data = await response.json();
       setRentals(data.data || []);
-      setPagination(data.pagination);
       setStats(data.stats || {});
     } catch (err) {
       setError(err.message);
@@ -141,24 +135,34 @@ export default function RentalReport() {
       setError(error.message || "Error al exportar el archivo Excel");
     }
   }, [filters]);
+  
+  // Filter and paginate rentals (como WashingMachines.jsx)
+  const filteredRentals = rentals.filter(
+    (rental) =>
+      rental.washingMachine?.description?.toLowerCase().includes(search.toLowerCase()) ||
+      rental.client?.nombre?.toLowerCase().includes(search.toLowerCase()) ||
+      (rental.client?.identificacion && rental.client.identificacion.toLowerCase().includes(search.toLowerCase())) ||
+      rental.status?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredRentals.length / pageSize));
+  const pageItems = filteredRentals.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
   // Efectos
   useEffect(() => {
     loadClients();
   }, []);
 
   useEffect(() => {
-    loadRentals(1);
+    loadRentals();
   }, [filters]);
-
-  // Funciones de paginación
-  const handlePageChange = (page) => {
-    setPagination((prev) => ({ ...prev, currentPage: page }));
-    loadRentals(page);
-  };
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
-    setPagination((prev) => ({ ...prev, currentPage: 1 }));
+    setPage(1); // Resetear página al filtrar
   };
 
   const clearFilters = () => {
@@ -168,6 +172,7 @@ export default function RentalReport() {
       startDate: "",
       endDate: "",
     });
+    setPage(1);
   };
 
   // Colores para estados
@@ -346,6 +351,19 @@ export default function RentalReport() {
         </div>
       </div>
 
+      {/* Campo de búsqueda */}
+      <div className="mb-4">
+        <input
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Buscar por cliente, lavadora, identificación o estado..."
+          className="w-full h-10 border rounded-lg px-3"
+        />
+      </div>
+
       {/* Tabla de resultados */}
       <div className="bg-white rounded-lg border overflow-hidden">
         {loading ? (
@@ -354,9 +372,11 @@ export default function RentalReport() {
           </div>
         ) : error ? (
           <div className="p-8 text-center text-red-600">{error}</div>
-        ) : rentals.length === 0 ? (
+        ) : filteredRentals.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            No se encontraron alquileres con los filtros seleccionados
+            {search
+              ? "No se encontraron alquileres con los filtros seleccionados"
+              : "No se encontraron alquileres con los filtros seleccionados"}
           </div>
         ) : (
           <>
@@ -391,7 +411,7 @@ export default function RentalReport() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {rentals.map((rental) => (
+                  {pageItems.map((rental) => (
                     <tr key={rental.id} className="hover:bg-gray-50">
                       <td className="px-4 py-4">
                         <div>
@@ -466,41 +486,28 @@ export default function RentalReport() {
               </table>
             </div>
 
-            {/* Paginación */}
-            {pagination.totalPages > 1 && (
-              <div className="px-4 py-3 border-t bg-gray-50 flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  Mostrando{" "}
-                  {(pagination.currentPage - 1) * pagination.itemsPerPage + 1} a{" "}
-                  {Math.min(
-                    pagination.currentPage * pagination.itemsPerPage,
-                    pagination.totalItems
-                  )}{" "}
-                  de {pagination.totalItems} alquileres
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handlePageChange(pagination.currentPage - 1)}
-                    disabled={!pagination.hasPreviousPage}
-                    className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 pointer-events-auto"
-                    style={{ pointerEvents: "auto" }}
-                  >
-                    Anterior
-                  </button>
-                  <span className="px-3 py-1 text-sm">
-                    Página {pagination.currentPage} de {pagination.totalPages}
-                  </span>
-                  <button
-                    onClick={() => handlePageChange(pagination.currentPage + 1)}
-                    disabled={!pagination.hasNextPage}
-                    className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 pointer-events-auto"
-                    style={{ pointerEvents: "auto" }}
-                  >
-                    Siguiente
-                  </button>
-                </div>
+            {/* Paginación (como WashingMachines.jsx) */}
+            <div className="mt-3 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Página {page} de {totalPages} — {filteredRentals.length} elementos
               </div>
-            )}
+              <div className="flex gap-2">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="h-9 px-3 border rounded disabled:opacity-50"
+                >
+                  Anterior
+                </button>
+                <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="h-9 px-3 border rounded disabled:opacity-50"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
           </>
         )}
       </div>

@@ -15,12 +15,11 @@ export default function AccountsReceivable() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalItems: 0,
-    itemsPerPage: 20,
-  });
+  
+  // Estados para paginación (como WashingMachines.jsx)
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const [reminders, setReminders] = useState([]);
   const [loadingReminders, setLoadingReminders] = useState(false);
@@ -93,14 +92,11 @@ export default function AccountsReceivable() {
   };
 
   // Cargar deudas
-  const loadDebts = async (page = 1) => {
+  const loadDebts = async () => {
     setLoading(true);
     setError("");
     try {
-      const params = new URLSearchParams({
-        page,
-        limit: pagination.itemsPerPage,
-      });
+      const params = new URLSearchParams();
 
       // Agregar filtros si existen
       if (filters.clientId) params.append("clientId", filters.clientId);
@@ -122,7 +118,6 @@ export default function AccountsReceivable() {
 
       setDebts(data.data);
       setStats(data.stats);
-      setPagination(data.pagination);
     } catch (err) {
       console.error("Error completo:", err);
       setError(err.message);
@@ -137,13 +132,21 @@ export default function AccountsReceivable() {
     loadCompany(); // ✅ Agregar esta línea
     loadReminders(); // ✅ Agregar esta línea
   }, [filters]);
+  
+  // Filter and paginate debts (como WashingMachines.jsx)
+  const filteredDebts = debts.filter(
+    (debt) =>
+      debt.client?.nombre?.toLowerCase().includes(search.toLowerCase()) ||
+      (debt.client?.identificacion && debt.client.identificacion.toLowerCase().includes(search.toLowerCase())) ||
+      debt.productName?.toLowerCase().includes(search.toLowerCase()) ||
+      debt.status?.toLowerCase().includes(search.toLowerCase())
+  );
 
-  // Manejar cambio de página
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= pagination.totalPages) {
-      loadDebts(newPage);
-    }
-  };
+  const totalPages = Math.max(1, Math.ceil(filteredDebts.length / pageSize));
+  const pageItems = filteredDebts.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   // Limpiar filtros
   const clearFilters = () => {
@@ -152,6 +155,7 @@ export default function AccountsReceivable() {
       startDate: "",
       endDate: "",
     });
+    setPage(1);
   };
 
   // Abrir modal de pago
@@ -649,41 +653,28 @@ export default function AccountsReceivable() {
           </table>
         </div>
 
-        {/* Paginación */}
-        {pagination.totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Mostrando{" "}
-                {(pagination.currentPage - 1) * pagination.itemsPerPage + 1} a{" "}
-                {Math.min(
-                  pagination.currentPage * pagination.itemsPerPage,
-                  pagination.totalItems
-                )}{" "}
-                de {pagination.totalItems} resultados
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handlePageChange(pagination.currentPage - 1)}
-                  disabled={pagination.currentPage === 1}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Anterior
-                </button>
-                <span className="px-3 py-1 text-sm">
-                  Página {pagination.currentPage} de {pagination.totalPages}
-                </span>
-                <button
-                  onClick={() => handlePageChange(pagination.currentPage + 1)}
-                  disabled={pagination.currentPage === pagination.totalPages}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Siguiente
-                </button>
-              </div>
-            </div>
+        {/* Paginación (como WashingMachines.jsx) */}
+        <div className="mt-3 flex items-center justify-between">
+          <div className="text-sm text-gray-500">
+            Página {page} de {totalPages} — {filteredDebts.length} elementos
           </div>
-        )}
+          <div className="flex gap-2">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="h-9 px-3 border rounded disabled:opacity-50"
+            >
+              Anterior
+            </button>
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="h-9 px-3 border rounded disabled:opacity-50"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Modal de Pago */}
