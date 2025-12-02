@@ -399,11 +399,129 @@ Proyecto desarrollado para gestión de negocios de gas y cacharrería.
    - `JWT_SECRET`: Token secreto para autenticación
    - `VITE_API_URL`: URL del backend para el frontend
 
+---
+
+## 🗄️ CONFIGURACIÓN CON SUPABASE
+
+### **¿POR QUÉ SUPABASE?**
+- ✅ **Panel visual** para ver y editar datos
+- ✅ **Gratis para empezar** (500MB, 50MB BW)
+- ✅ **API REST automática** incluida
+- ✅ **Backups automáticos** en plan gratuito
+- ✅ **Más fácil** que PostgreSQL estándar
+
+### **PASO 1: CREAR PROYECTO SUPABASE**
+
+1. **Ve a** [Supabase](https://supabase.com)
+2. **Crea cuenta gratuita**
+3. **Nuevo proyecto** → Elige región cercana
+4. **Espera creación** (2-3 minutos)
+
+### **PASO 2: OBTENER CREDENCIALES**
+
+**En tu proyecto Supabase:**
+1. **Settings → Database**
+2. **Copia las URLs:**
+
+```
+# Para conexión normal (con pooler)
+DATABASE_URL=postgresql://postgres.oiismmsfqnfwtmufxavv:TU_PASSWORD@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+
+# Para migraciones (directa)
+DIRECT_URL=postgresql://postgres.oiismmsfqnfwtmufxavv:TU_PASSWORD@aws-1-us-east-1.pooler.supabase.com:5432/postgres
+```
+
+### **PASO 3: CONFIGURACIÓN LOCAL**
+
+**1. Instala Supabase CLI:**
+```bash
+npm install -g supabase
+# O usa npx: npx supabase
+```
+
+**2. Login en Supabase:**
+```bash
+npx supabase login
+# Abre navegador → Autoriza
+```
+
+**3. Conecta proyecto:**
+```bash
+cd server
+npx supabase link --project-ref TU_PROJECT_REF
+```
+
+**4. Migra las tablas:**
+```bash
+npx prisma db push
+```
+
+### **PASO 4: CONFIGURACIÓN EN RENDER**
+
+**En Render Dashboard → Environment Variables:**
+
+```
+DATABASE_URL=postgresql://postgres.oiismmsfqnfwtmufxavv:TU_PASSWORD@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+DIRECT_URL=postgresql://postgres.oiismmsfqnfwtmufxavv:TU_PASSWORD@aws-1-us-east-1.pooler.supabase.com:5432/postgres
+JWT_SECRET=tu_secreto_aqui
+```
+
+### **PASO 5: COMANDOS DE DESPLIEGUE CON SUPABASE**
+
+**Build Command:**
+```bash
+npm install && npx prisma generate && npm run build
+```
+
+**Start Command:**
+```bash
+npx prisma db seed && npm start
+```
+
+### **🔍 VERIFICACIÓN EN SUPABASE**
+
+**Para confirmar que todo funciona:**
+
+**1. Panel Supabase → Table Editor**
+- Verás tablas: users, clients, products, etc.
+- Puedes editar datos directamente
+
+**2. SQL Editor (para consulta directa):**
+```sql
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' 
+ORDER BY table_name;
+```
+
+**3. Prisma Studio (local):**
+```bash
+cd server
+npx prisma studio
+```
+
+### **🚀 VENTAJAS DE SUPABASE**
+
+- ✅ **Visualización inmediata** de datos
+- ✅ **Edición directa** en el panel
+- ✅ **Logs en tiempo real**
+- ✅ **Backups automáticos**
+- ✅ **Escalable** cuando crezcas
+- ✅ **Sin configuración** de servidor PostgreSQL
+
+### **📋 FLUJO COMPLETO**
+
+1. **Local:** `npx prisma db push` (crea tablas)
+2. **Render:** Configura variables de entorno
+3. **Deploy:** Build y Start automáticos
+4. **Verificación:** Panel Supabase + Login app
+
+---
+
 5. **Health Checks**
    - Backend: `/api/health` endpoint
    - Frontend: Servido como sitio estático
 
-### ⚠️ CONFIGURACIÓN IMPORTANTE DE BUILD Y START
+### ⚠️ CONFIGURACIÓN IMPORTANTE DE BUILD Y START RENDER
 
 #### **PRIMERA VEZ (construcción inicial):**
 
