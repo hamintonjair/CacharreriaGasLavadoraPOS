@@ -367,8 +367,8 @@ const corsOptions = {
   origin: [
     'http://localhost:5173', 
     'http://localhost:5174',
-    'https://cacharreriagaspos-1.onrender.com',
-    'https://cacharreriagaspos-1.onrender.com/'
+    'https://cacharreriagaslavadorapos-1.onrender',
+    'https://cacharreriagaslavadorapos-1.onrender/'
   ], // URLs permitidas
   credentials: true, // Permite enviar cookies y encabezados de autenticación
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
