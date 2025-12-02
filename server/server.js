@@ -322,14 +322,14 @@ async function initializeDefaultData() {
 }
 
 // Llamar a la función principal
-await initializeDefaultData();
-await ensureDefaultSeller();
-await ensureGenericClient();
-await ensureCategories();
-await ensureGasTypes();
-await ensureProducts();
-await ensureWashingMachines();
-await ensureCompany();
+// await initializeDefaultData();
+// await ensureDefaultSeller();
+// await ensureGenericClient();
+// await ensureCategories();
+// await ensureGasTypes();
+// await ensureProducts();
+// await ensureWashingMachines();
+// await ensureCompany();
 
 
 // FIN DE REGISTRO POR DEFAULT //
