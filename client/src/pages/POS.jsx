@@ -1,8 +1,29 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import Invoice from "../components/Invoice.jsx";
+import { formatDateToColombia } from "../utils/dateUtils.js";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 // const LOGO_URL = import.meta.env.VITE_LOGO_URL;
+
+// Función helper para obtener fecha mínima local (Colombia UTC-5)
+const getLocalDateMin = () => {
+  // Usar formatDateToColombia para obtener la fecha actual en Colombia
+  const now = new Date();
+  const colombiaDate = formatDateToColombia(now, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: undefined,
+    minute: undefined,
+    second: undefined
+  });
+  
+  // Convertir DD/MM/YYYY a YYYY-MM-DD
+  const [day, month, year] = colombiaDate.split('/');
+  const result = `${year}-${month}-${day}`;
+  console.log('DEBUG - Colombia date:', colombiaDate, '->', result);
+  return result;
+};
 
 export default function POS() {
   const token = localStorage.getItem("auth_token");
@@ -98,38 +119,9 @@ const handlePrintInvoice = () => {
     return;
   }
 
-  // Función segura para formatear fechas (igual que Invoice.jsx)
+  // Función segura para formatear fechas (usando formatDateToColombia)
   const safeFormatDate = (date) => {
-    if (!date) return 'N/A';
-    try {
-      // Intentar diferentes formatos de fecha
-      let dateObj;
-      
-      // Si es string, intentar parsearlo
-      if (typeof date === 'string') {
-        // Formato ISO: 2025-11-29T09:30:00.000Z
-        if (date.includes('T')) {
-          dateObj = new Date(date);
-        } else {
-          // Formato local: 2025-11-29 09:30:00
-          dateObj = new Date(date.replace(' ', 'T'));
-        }
-      } else {
-        dateObj = new Date(date);
-      }
-      
-      if (isNaN(dateObj.getTime())) return 'N/A';
-      
-      return dateObj.toLocaleString('es-EC', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return 'N/A';
-    }
+    return formatDateToColombia(date);
   };
 
   // Función para formatear moneda (igual que Invoice.jsx)
@@ -2503,7 +2495,7 @@ const handlePrintInvoice = () => {
                   }));
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                min={new Date().toISOString().split("T")[0]}
+                min={getLocalDateMin()}
               />
             </div>
 
@@ -2662,9 +2654,7 @@ const handlePrintInvoice = () => {
                         Cuota {installment.installmentNumber}
                       </td>
                       <td className="border border-gray-200 px-4 py-2">
-                        {new Date(installment.dueDate).toLocaleDateString(
-                          "es-EC"
-                        )}
+                        {formatDateToColombia(installment.dueDate)}
                       </td>
                       <td className="border border-gray-200 px-4 py-2 text-right font-semibold">
                         ${installment.amountDue.toLocaleString()}

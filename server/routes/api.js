@@ -27,9 +27,9 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: (req, file) => {
     return {
-      folder: 'company2-logos',
+      folder: 'company-logos',
       allowed_formats: ['jpg', 'jpeg', 'png'],
-      public_id: 'company2-logo',
+      public_id: 'company-logo',
       overwrite: true,
       resource_type: 'image'
     };
@@ -319,7 +319,7 @@ router.get("/reports/rentals-history/export", auth, async (req, res) => {
     if (clientId) where.clientId = clientId;
     if (startDate || endDate) {
       where.rentalDate = {};
-      if (startDate) where.rentalDate.gte = new Date(startDate);
+      if (startDate) where.rentalDate.gte = new Date(startDate + "T00:00:00.000Z");
       if (endDate) where.rentalDate.lte = new Date(endDate + "T23:59:59.999Z");
     }
 
@@ -1194,7 +1194,7 @@ router.post("/sales", auth, async (req, res) => {
         saleId: sale.id,
         amount: Number(payment.amount),
         paymentMethod: payment.paymentMethod || "CASH",
-        date: new Date(),
+        date: new Date().toISOString(),
       }));
 
       await tx.payment.createMany({
@@ -1212,7 +1212,7 @@ router.post("/sales", auth, async (req, res) => {
             saleId: sale.id,
             installmentNumber: installment.installmentNumber || index + 1,
             amountDue: String(installment.amountDue),
-            dueDate: new Date(installment.dueDate),
+            dueDate: new Date(installment.dueDate).toISOString(),
             status: "PENDING",
           })),
         });
@@ -1740,7 +1740,7 @@ router.get("/sales/pending-payments", auth, async (req, res) => {
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) {
-        where.createdAt.gte = new Date(startDate);
+        where.createdAt.gte = new Date(startDate + "T00:00:00.000Z");
       }
       if (endDate) {
         where.createdAt.lte = new Date(endDate + "T23:59:59.999Z");
@@ -2820,6 +2820,138 @@ router.delete("/washing-machines/:id", auth, async (req, res) => {
 
 // ===================== ALQUILERES (RENTALS) =====================
 
+// GET /api/rentals/reminders - Alquileres próximos a vencer (20 minutos) (ADMIN)
+router.get("/rentals/reminders", auth, async (req, res) => {
+  try {
+    if (
+      !req.user ||
+      (req.user.role !== "ADMIN" && req.user.role !== "VENDEDOR")
+    ) {
+      return res.status(403).json({ error: "Acceso denegado" });
+    }
+
+    const now = new Date();
+    const in20Minutes = new Date(now.getTime() + 20 * 60 * 1000);
+
+    // ✅ Obtener alquileres próximos Y vencidos
+    const rentals = await prisma.rental.findMany({
+      where: {
+        status: "RENTED",
+        OR: [
+          // ✅ Alquileres próximos (20 minutos antes)
+          {
+            scheduledReturnDate: {
+              gte: now,
+              lte: in20Minutes,
+            },
+          },
+          // ✅ Alquileres VENCIDOS (hora ya pasó)
+          {
+            scheduledReturnDate: {
+              lt: now, // Menor que ahora = vencido
+            },
+          },
+        ],
+      },
+      include: {
+        washingMachine: {
+          select: { id: true, description: true, pricePerHour: true },
+        },
+        client: {
+          select: {
+            id: true,
+            nombre: true,
+            identificacion: true,
+            telefono: true,
+          },
+        },
+        user: {
+          select: { id: true, nombre: true, username: true },
+        },
+      },
+      orderBy: { scheduledReturnDate: "asc" },
+    });
+
+    // ✅ Clasificar por estado
+    const classified = rentals.map((rental) => ({
+      ...rental,
+      urgency:
+        new Date(rental.scheduledReturnDate) < now ? "OVERDUE" : "PENDING",
+      statusText:
+        new Date(rental.scheduledReturnDate) < now
+          ? "ALQUILER VENCIDO"
+          : "POR VENCER",
+    }));
+
+    const upcomingRentals = classified.filter((r) => r.urgency === "PENDING");
+    const overdueRentals = classified.filter((r) => r.urgency === "OVERDUE");
+
+    res.json({
+      rentals: classified, // Todos los alquileres
+      upcomingRentals, // Solo próximos
+      overdueRentals, // Solo vencidos
+      count: classified.length,
+      upcomingCount: upcomingRentals.length,
+      overdueCount: overdueRentals.length,
+      reminderTime: "20 minutos",
+    });
+  } catch (error) {
+    console.error("Error al obtener recordatorios:", error);
+    res.status(500).json({ error: "Error al obtener recordatorios" });
+  }
+});
+
+// GET /api/rentals/:id - Obtener detalles de un alquiler específico (ADMIN/VENDEDOR)
+router.get("/rentals/:id", auth, async (req, res) => {
+  try {
+    if (
+      !req.user ||
+      (req.user.role !== "ADMIN" && req.user.role !== "VENDEDOR")
+    ) {
+      return res.status(403).json({ error: "Solo ADMIN o VENDEDOR" });
+    }
+
+    const { id } = req.params;
+    const rentalId = Number(id);
+
+    if (isNaN(rentalId)) {
+      return res.status(400).json({ error: "ID de alquiler inválido" });
+    }
+
+    // Obtener alquiler con relaciones completas incluyendo dirección del cliente
+    const rental = await prisma.rental.findUnique({
+      where: { id: rentalId },
+      include: {
+        washingMachine: {
+          select: { id: true, description: true, pricePerHour: true },
+        },
+        client: {
+          select: {
+            id: true,
+            nombre: true,
+            identificacion: true,
+            telefono: true,
+            direccion: true, // Incluir dirección del cliente
+          },
+        },
+        user: {
+          select: { id: true, nombre: true, username: true },
+        },
+      },
+    });
+
+    if (!rental) {
+      return res.status(404).json({ error: "Alquiler no encontrado" });
+    }
+
+    res.json(rental);
+  } catch (error) {
+    console.error("Error al obtener alquiler:", error);
+    res.status(500).json({ error: "Error al obtener alquiler" });
+  }
+});
+
+
 // GET /api/rentals - Listar alquileres (ADMIN)
 router.get("/rentals", auth, async (req, res) => {
   try {
@@ -2859,6 +2991,7 @@ router.get("/rentals", auth, async (req, res) => {
               nombre: true,
               identificacion: true,
               telefono: true,
+              direccion: true, // Incluir dirección del cliente
             },
           },
           user: {
@@ -2945,7 +3078,19 @@ router.post("/rentals", auth, async (req, res) => {
     }
 
     // Validar fecha de devolución programada
-    const returnDate = new Date(scheduledReturnDate);
+    let returnDate;
+    if (typeof scheduledReturnDate === 'string') {
+      // Asegurar que la fecha se parsee correctamente
+      if (scheduledReturnDate.includes('T')) {
+        returnDate = new Date(scheduledReturnDate);
+      } else {
+        // Si viene sin T, agregar T para formato ISO
+        returnDate = new Date(scheduledReturnDate.replace(' ', 'T'));
+      }
+    } else {
+      returnDate = new Date(scheduledReturnDate);
+    }
+  
     const now = new Date();
     if (returnDate <= now) {
       return res
@@ -2978,8 +3123,8 @@ router.post("/rentals", auth, async (req, res) => {
           washingMachineId: Number(washingMachineId),
           clientId: Number(clientId),
           rentalPrice: String(rentalPrice),
-          rentalDate: new Date(),
-          scheduledReturnDate: returnDate,
+          rentalDate: new Date().toISOString(),
+          scheduledReturnDate: returnDate.toISOString(),
           status: "RENTED",
           userId: req.user.id,
           hoursRented: Number(hoursRented),
@@ -3062,7 +3207,7 @@ router.put("/rentals/:id/deliver", auth, async (req, res) => {
         where: { id: rentalId },
         data: {
           status: "DELIVERED",
-          actualReturnDate: new Date(),
+          actualReturnDate: new Date().toISOString(),
         },
         include: {
           washingMachine: {
@@ -3154,88 +3299,8 @@ router.get("/rentals/overdue", auth, async (req, res) => {
   }
 });
 
-// GET /api/rentals/reminders - Alquileres próximos a vencer (20 minutos) (ADMIN)
-router.get("/rentals/reminders", auth, async (req, res) => {
-  try {
-    if (
-      !req.user ||
-      (req.user.role !== "ADMIN" && req.user.role !== "VENDEDOR")
-    ) {
-      return res.status(403).json({ error: "Acceso denegado" });
-    }
 
-    const now = new Date();
-    const in20Minutes = new Date(now.getTime() + 20 * 60 * 1000);
 
-    // ✅ Obtener alquileres próximos Y vencidos
-    const rentals = await prisma.rental.findMany({
-      where: {
-        status: "RENTED",
-        OR: [
-          // ✅ Alquileres próximos (20 minutos antes)
-          {
-            scheduledReturnDate: {
-              gte: now,
-              lte: in20Minutes,
-            },
-          },
-          // ✅ Alquileres VENCIDOS (hora ya pasó)
-          {
-            scheduledReturnDate: {
-              lt: now, // Menor que ahora = vencido
-            },
-          },
-        ],
-      },
-      include: {
-        washingMachine: {
-          select: { id: true, description: true, pricePerHour: true },
-        },
-        client: {
-          select: {
-            id: true,
-            nombre: true,
-            identificacion: true,
-            telefono: true,
-          },
-        },
-        user: {
-          select: { id: true, nombre: true, username: true },
-        },
-      },
-      orderBy: { scheduledReturnDate: "asc" },
-    });
-
-    // ✅ Clasificar por estado
-    const classified = rentals.map((rental) => ({
-      ...rental,
-      urgency:
-        new Date(rental.scheduledReturnDate) < now ? "OVERDUE" : "PENDING",
-      statusText:
-        new Date(rental.scheduledReturnDate) < now
-          ? "ALQUILER VENCIDO"
-          : "POR VENCER",
-    }));
-
-    const upcomingRentals = classified.filter((r) => r.urgency === "PENDING");
-    const overdueRentals = classified.filter((r) => r.urgency === "OVERDUE");
-
-    res.json({
-      rentals: classified, // Todos los alquileres
-      upcomingRentals, // Solo próximos
-      overdueRentals, // Solo vencidos
-      count: classified.length,
-      upcomingCount: upcomingRentals.length,
-      overdueCount: overdueRentals.length,
-      reminderTime: "20 minutos",
-    });
-  } catch (error) {
-    console.error("Error al obtener recordatorios:", error);
-    res.status(500).json({ error: "Error al obtener recordatorios" });
-  }
-});
-
-// PUT /api/rentals/:id - Actualizar alquiler (extender horas) (ADMIN/VENDEDOR)
 // PUT /api/rentals/:id - Actualizar alquiler (extender horas) (ADMIN/VENDEDOR)
 router.put("/rentals/:id", auth, async (req, res) => {
   try {
@@ -3269,6 +3334,7 @@ router.put("/rentals/:id", auth, async (req, res) => {
         },
       },
     });
+    const originalRentalType = existingRental.rentalType;
 
     if (!existingRental) {
       return res.status(404).json({ error: "Alquiler no encontrado" });
@@ -3293,13 +3359,6 @@ router.put("/rentals/:id", auth, async (req, res) => {
     let newHoursRented;
     let notesText;
 
-    // 🔥 VERIFICAR TIPO DE ALQUILER ORIGINAL
-    const originalRentalType = existingRental.rentalType;
-    console.log("🔥 BACKEND: Tipo de alquiler original:", originalRentalType);
-    console.log("🔥 BACKEND: Tipo de extensión solicitada:", rentalType);
-    console.log("🔥 BACKEND: isExtension:", isExtension);
-    console.log("🔥 BACKEND: Precio actual:", existingRental.rentalPrice);
-    console.log("🔥 BACKEND: Horas actuales:", existingRental.hoursRented);
 
     // 🔥 PRIORIDAD 1: SI EL ALQUILER ORIGINAL ES OVERNIGHT, SIEMPRE SUMAR ADICIONAL
     if (originalRentalType === "OVERNIGHT") {
@@ -3321,9 +3380,6 @@ router.put("/rentals/:id", auth, async (req, res) => {
         : existingRental.notes;
     } else if (isExtension && rentalType === "OVERNIGHT") {
       // 🔥 PRIORIDAD 2: SI EL ALQUILER ORIGINAL ES POR HORA pero se extiende como amanecida
-      console.log(
-        "🔥 BACKEND: Extensión por amanecida desde alquiler por hora"
-      );
 
       newRentalPrice =
         Number(existingRental.rentalPrice) + Number(additionalPrice || 0);
@@ -3335,10 +3391,8 @@ router.put("/rentals/:id", auth, async (req, res) => {
           }\nExtensión por amanecida: +$${additionalPrice}`.trim()
         : existingRental.notes;
 
-      console.log("🔥 BACKEND: Nuevo precio total:", newRentalPrice);
     } else if (isExtension && rentalType === "HOUR") {
       // 🔥 PRIORIDAD 3: PARA EXTENSIÓN POR HORA desde alquiler por hora
-      console.log("🔥 BACKEND: Extensión por hora detectada");
 
       const rentalDate = new Date(existingRental.rentalDate);
       const hoursDiff = Math.ceil(
@@ -3369,7 +3423,7 @@ router.put("/rentals/:id", auth, async (req, res) => {
     const updatedRental = await prisma.rental.update({
       where: { id: rentalId },
       data: {
-        scheduledReturnDate: newReturnDate,
+        scheduledReturnDate: newReturnDate.toISOString(),
         hoursRented: newHoursRented,
         rentalPrice: String(newRentalPrice),
         notes: notesText,
@@ -3434,7 +3488,7 @@ router.get("/reports/rentals-history", auth, async (req, res) => {
     if (startDate || endDate) {
       where.rentalDate = {};
       if (startDate) {
-        where.rentalDate.gte = new Date(startDate);
+        where.rentalDate.gte = new Date(startDate + "T00:00:00.000Z");
       }
       if (endDate) {
         where.rentalDate.lte = new Date(endDate + "T23:59:59.999Z");
@@ -3483,7 +3537,7 @@ router.get("/reports/rentals-history", auth, async (req, res) => {
         startDate || endDate
           ? {
               rentalDate: {
-                gte: startDate ? new Date(startDate) : undefined,
+                gte: startDate ? new Date(startDate + "T00:00:00.000Z") : undefined,
                 lte: endDate ? new Date(endDate + "T23:59:59.999Z") : undefined,
               },
             }
@@ -3567,7 +3621,7 @@ router.post("/payments", auth, async (req, res) => {
           saleId: installment.saleId,
           amount: Number(amount),
           paymentMethod: String(paymentMethod),
-          date: new Date(),
+          date: new Date().toISOString(),
         },
       });
 
@@ -3576,7 +3630,7 @@ router.post("/payments", auth, async (req, res) => {
         where: { id: Number(installmentId) },
         data: {
           status: "PAID",
-          paidAt: new Date(),
+          paidAt: new Date().toISOString(),
         },
       });
 

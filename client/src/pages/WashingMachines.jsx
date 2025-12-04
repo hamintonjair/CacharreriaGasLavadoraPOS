@@ -2,8 +2,33 @@ import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import ModalConfirmacion from "../components/ModalConfirmación";
+import { formatDateToColombia } from "../utils/dateUtils.js";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+// Función helper para obtener fecha/hora mínima local (Colombia UTC-5)
+const getLocalDateTimeMin = () => {
+  // Usar formatDateToColombia para obtener la fecha actual en Colombia
+  const now = new Date();
+  const colombiaDate = formatDateToColombia(now, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  
+  // Convertir DD/MM/YYYY HH:mm a YYYY-MM-DDTHH:mm
+  const [datePart, timePart] = colombiaDate.split(', ');
+  const [day, month, year] = datePart.split('/');
+  const [hours, minutes] = timePart.split(':');
+  
+  // Forzar la hora actual en Colombia sin minutos para evitar problemas
+  const result = `${year}-${month}-${day}T${hours}:00`;
+
+  return result;
+};
 
 export default function WashingMachines() {
   // Estados para lavadoras
@@ -52,7 +77,7 @@ export default function WashingMachines() {
   // Estados para paginación
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const pageSize = 11;
+  const pageSize = 10;
   
   // Estados para paginación de alquileres
   const [searchRentals, setSearchRentals] = useState("");
@@ -88,7 +113,8 @@ export default function WashingMachines() {
     try {
       setMachinesLoading(true);
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(`${API_URL}/washing-machines`, {
+      // Obtener todas las lavadoras sin límite
+      const response = await fetch(`${API_URL}/washing-machines?limit=1000`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Error al cargar lavadoras");
@@ -451,10 +477,8 @@ export default function WashingMachines() {
   };
 
   // Filter and paginate machines
-  const filteredMachines = machines.filter(
-    (machine) =>
-      machine.description.toLowerCase().includes(search.toLowerCase()) ||
-      machine.pricePerHour.toString().includes(search.toLowerCase())
+  const filteredMachines = machines.filter((machine) =>
+    machine.description.toLowerCase().includes(search.toLowerCase())
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredMachines.length / pageSize));
@@ -463,12 +487,11 @@ export default function WashingMachines() {
     page * pageSize
   );
 
+
   // Filter and paginate rentals
-  const filteredRentals = activeRentals.filter(
-    (rental) =>
-      rental.washingMachine.description.toLowerCase().includes(searchRentals.toLowerCase()) ||
-      rental.client.nombre.toLowerCase().includes(searchRentals.toLowerCase()) ||
-      (rental.client.identificacion && rental.client.identificacion.toLowerCase().includes(searchRentals.toLowerCase()))
+  const filteredRentals = activeRentals.filter((rental) =>
+    rental.client?.nombre.toLowerCase().includes(searchRentals.toLowerCase()) ||
+    rental.washingMachine?.description.toLowerCase().includes(searchRentals.toLowerCase())
   );
 
   const rentalsTotalPages = Math.max(1, Math.ceil(filteredRentals.length / rentalsPageSize));
@@ -536,7 +559,7 @@ export default function WashingMachines() {
                     </div>
                     <div className="text-xs text-gray-500">
                       Devolución:{" "}
-                      {new Date(rental.scheduledReturnDate).toLocaleString()}
+                      {formatDateToColombia(rental.scheduledReturnDate)}
                       {rental.urgency === "OVERDUE" && (
                         <span className="ml-2 text-red-600 font-semibold">
                           ⚠️ {rental.statusText}
@@ -673,13 +696,11 @@ export default function WashingMachines() {
                     <div>{rental.washingMachine?.description}</div>
                     <div className="text-xs text-yellow-600">
                       Entrega:{" "}
-                      {new Date(rental.scheduledReturnDate).toLocaleTimeString(
-                        "es-ES",
-                        {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }
-                      )}
+                      {formatDateToColombia(rental.scheduledReturnDate, {
+                        hour: undefined,
+                        minute: undefined,
+                        second: undefined
+                      })}
                     </div>
                   </div>
                 </div>
@@ -866,11 +887,7 @@ export default function WashingMachines() {
                           </span>
                         </td>
                         <td className="text-center py-2 px-2">
-                          {format(
-                            new Date(rental.scheduledReturnDate),
-                            "dd/MM/yyyy HH:mm",
-                            { locale: es }
-                          )}
+                        {formatDateToColombia(rental.scheduledReturnDate)}
                         </td>
                         <td className="text-center py-2 px-2">
                           <button
@@ -950,20 +967,16 @@ export default function WashingMachines() {
                 {showRentalDetails.client.telefono || "N/A"}
               </div>
               <div>
+                <span className="font-medium">Dirección:</span>{" "}
+                {showRentalDetails.client.direccion || "N/A"}
+              </div>
+              <div>
                 <span className="font-medium">Fecha de alquiler:</span>{" "}
-                {format(
-                  new Date(showRentalDetails.rentalDate),
-                  "dd/MM/yyyy HH:mm",
-                  { locale: es }
-                )}
+                {formatDateToColombia(showRentalDetails.rentalDate)}
               </div>
               <div>
                 <span className="font-medium">Entrega programada:</span>{" "}
-                {format(
-                  new Date(showRentalDetails.scheduledReturnDate),
-                  "dd/MM/yyyy HH:mm",
-                  { locale: es }
-                )}
+                {formatDateToColombia(showRentalDetails.scheduledReturnDate)}
               </div>
               <div>
                 <span className="font-medium">Tipo de alquiler:</span>{" "}
@@ -1049,7 +1062,7 @@ export default function WashingMachines() {
                       value={deliveryDateTime}
                       onChange={(e) => setDeliveryDateTime(e.target.value)}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                      min={new Date().toISOString().slice(0, 16)}
+                      min={getLocalDateTimeMin()}
                     />
                   </div>
                   <div>
@@ -1142,7 +1155,11 @@ export default function WashingMachines() {
                 <div>
                   <strong>Nueva entrega programada:</strong>{" "}
                   {extensionType === 'OVERNIGHT' ? (
-                    deliveryDateTime ? format(new Date(deliveryDateTime), "dd/MM/yyyy HH:mm", { locale: es }) : "Selecciona fecha"
+                    deliveryDateTime ? formatDateToColombia(deliveryDateTime, {
+                      hour: undefined,
+                      minute: undefined,
+                      second: undefined
+                    }) : "Selecciona fecha"
                   ) : (
                     format(
                       new Date(

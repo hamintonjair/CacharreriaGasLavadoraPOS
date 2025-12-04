@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { formatDateToColombia } from "../utils/dateUtils.js";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -125,7 +126,11 @@ export default function RentalReport() {
       link.href = url;
       link.setAttribute(
         "download",
-        `historial-alquileres-${new Date().toISOString().split("T")[0]}.xlsx`
+        `historial-alquileres-${formatDateToColombia(new Date(), {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).replace(/\//g, '-')}.xlsx`
       );
       document.body.appendChild(link);
       link.click();
@@ -215,11 +220,14 @@ export default function RentalReport() {
           </p>
         </div>
         <div className="text-sm text-gray-500">
-          {new Date().toLocaleDateString("es-ES", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
+          {formatDateToColombia(new Date(), {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: undefined,
+            minute: undefined,
+            second: undefined
           })}
         </div>
       </div>
@@ -242,7 +250,7 @@ export default function RentalReport() {
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg border">
           <div className="text-sm text-gray-600">Total Alquileres</div>
           <div className="text-2xl font-bold text-gray-900">
@@ -262,9 +270,32 @@ export default function RentalReport() {
           </div>
         </div>
         <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-          <div className="text-sm text-red-600">Atrasados</div>
+          <div className="text-sm text-red-600">Vencidos</div>
           <div className="text-2xl font-bold text-red-900">
-            {stats.OVERDUE?.count || 0}
+            {rentals.filter(rental => {
+              const scheduledReturnDate = new Date(rental.scheduledReturnDate);
+              const now = new Date();
+              return rental.status === 'RENTED' && scheduledReturnDate < now;
+            }).length}
+          </div>
+          <div className="text-xs text-red-600 mt-1">
+            Valor: ${rentals
+              .filter(rental => {
+                const scheduledReturnDate = new Date(rental.scheduledReturnDate);
+                const now = new Date();
+                return rental.status === 'RENTED' && scheduledReturnDate < now;
+              })
+              .reduce((sum, rental) => sum + (parseFloat(rental.rentalPrice) || 0), 0)
+              .toLocaleString()}
+          </div>
+        </div>
+        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+          <div className="text-sm text-purple-600">Valor Total Entregados</div>
+          <div className="text-2xl font-bold text-purple-900">
+            ${rentals
+              .filter(rental => rental.status === 'DELIVERED')
+              .reduce((sum, rental) => sum + (parseFloat(rental.rentalPrice) || 0), 0)
+              .toLocaleString()}
           </div>
         </div>
       </div>
@@ -445,20 +476,12 @@ export default function RentalReport() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="text-sm text-gray-900">
-                          {format(
-                            new Date(rental.rentalDate),
-                            "dd/MM/yyyy HH:mm",
-                            { locale: es }
-                          )}
+                          {formatDateToColombia(rental.rentalDate)}
                         </div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="text-sm text-gray-900">
-                          {format(
-                            new Date(rental.scheduledReturnDate),
-                            "dd/MM/yyyy HH:mm",
-                            { locale: es }
-                          )}
+                          {formatDateToColombia(rental.scheduledReturnDate)}
                         </div>
                       </td>
                       <td className="px-4 py-4">
