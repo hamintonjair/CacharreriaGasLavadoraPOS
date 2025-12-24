@@ -3080,12 +3080,12 @@ router.post("/rentals", auth, async (req, res) => {
     // Validar fecha de devolución programada
     let returnDate;
     if (typeof scheduledReturnDate === 'string') {
-      // Asegurar que la fecha se parsee correctamente
+      // Asegurar que la fecha se parsee correctamente como hora local Colombia
       if (scheduledReturnDate.includes('T')) {
-        returnDate = new Date(scheduledReturnDate);
+        returnDate = new Date(scheduledReturnDate + '-05:00'); // Forzar timezone Colombia
       } else {
-        // Si viene sin T, agregar T para formato ISO
-        returnDate = new Date(scheduledReturnDate.replace(' ', 'T'));
+        // Si viene sin T, agregar T y timezone Colombia
+        returnDate = new Date(scheduledReturnDate.replace(' ', 'T') + '-05:00');
       }
     } else {
       returnDate = new Date(scheduledReturnDate);

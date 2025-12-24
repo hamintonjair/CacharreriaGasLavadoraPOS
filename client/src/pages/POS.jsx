@@ -719,7 +719,7 @@ const handlePrintInvoice = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_URL}/washing-machines`, {
+      const res = await fetch(`${API_URL}/washing-machines?limit=1000`, {
         headers: authHeaders,
       });
       const data = await res.json();
