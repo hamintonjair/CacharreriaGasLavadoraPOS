@@ -3080,18 +3080,27 @@ router.post("/rentals", auth, async (req, res) => {
     // Validar fecha de devolución programada
     let returnDate;
     if (typeof scheduledReturnDate === 'string') {
-      // Asegurar que la fecha se parsee correctamente como hora local Colombia
+      // Asegurar que la fecha se parsee correctamente
       if (scheduledReturnDate.includes('T')) {
-        returnDate = new Date(scheduledReturnDate + '-05:00'); // Forzar timezone Colombia
+        returnDate = new Date(scheduledReturnDate);
       } else {
-        // Si viene sin T, agregar T y timezone Colombia
-        returnDate = new Date(scheduledReturnDate.replace(' ', 'T') + '-05:00');
+        // Si viene sin T, agregar T para formato ISO
+        returnDate = new Date(scheduledReturnDate.replace(' ', 'T'));
       }
     } else {
       returnDate = new Date(scheduledReturnDate);
     }
   
     const now = new Date();
+    
+    // Validar que la fecha sea válida antes de continuar
+    if (isNaN(returnDate.getTime())) {
+      return res.status(400).json({ 
+        error: "Fecha de devolución inválida",
+        debug: { scheduledReturnDate, rentalType }
+      });
+    }
+    
     if (returnDate <= now) {
       return res
         .status(400)
