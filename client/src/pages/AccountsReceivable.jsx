@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { formatDateToColombia } from "../utils/dateUtils.js";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -283,7 +284,7 @@ export default function AccountsReceivable() {
       debt.client.nombre
     }, le recordamos su saldo pendiente de $${(
       debt.totalDebt || 0
-    ).toLocaleString("es-EC")} en la empresa ${
+    ).toLocaleString("es-CO")} en la empresa ${
       company.name
     }. Por favor, realizar su pago. ¡Gracias!`;
 
@@ -299,9 +300,9 @@ export default function AccountsReceivable() {
       reminder.sale?.client?.nombre
     }, te recordamos que tu cuota ${reminder.installmentNumber} de $${Number(
       reminder.amountDue
-    ).toLocaleString("es-EC")} vence el ${new Date(
+    ).toLocaleString("es-CO")} vence el ${formatDateToColombia(
       reminder.dueDate
-    ).toLocaleDateString()}. Por favor, realiza tu pago a tiempo. ¡Gracias!`;
+    )}. Por favor, realiza tu pago a tiempo. ¡Gracias!`;
 
     const whatsappUrl = `https://wa.me/${reminder.sale?.client?.telefono?.replace(
       /[^\d]/g,
@@ -321,15 +322,9 @@ export default function AccountsReceivable() {
       console.error("Error marcando recordatorio:", err);
     }
   };
-  // Formatear fecha
+  // Formatear fecha usando formatDateToColombia
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("es-EC", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateToColombia(dateString);
   };
 
   return (
@@ -348,7 +343,7 @@ export default function AccountsReceivable() {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="text-sm text-gray-600 mb-1">Total Deuda</div>
           <div className="text-2xl font-bold text-red-600">
-            ${(stats.totalDebt || 0).toLocaleString("es-EC")}
+            ${(stats.totalDebt || 0).toLocaleString("es-CO")}
           </div>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -401,11 +396,15 @@ export default function AccountsReceivable() {
                     </div>
                     <div className="text-sm text-gray-600">
                       Cuota {reminder.installmentNumber} - $
-                      {Number(reminder.amountDue).toLocaleString("es-EC")}
+                      {Number(reminder.amountDue).toLocaleString("es-CO")}
                     </div>
                     <div className="text-xs text-gray-500">
-                      Vence: {new Date(reminder.dueDate).toLocaleDateString()}
-                      {new Date(reminder.dueDate) < new Date() && (
+                      Vence: {formatDateToColombia(reminder.dueDate, {
+                        hour: undefined,
+                        minute: undefined,
+                        second: undefined
+                      })}
+                      {formatDateToColombia(reminder.dueDate) < formatDateToColombia(new Date()) && (
                         <span className="ml-2 text-red-600 font-semibold">
                           ⚠️ VENCIDA
                         </span>
@@ -452,7 +451,7 @@ export default function AccountsReceivable() {
               onChange={(e) =>
                 setFilters({ ...filters, clientId: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-300"
               placeholder="ID del cliente"
             />
           </div>
@@ -466,7 +465,7 @@ export default function AccountsReceivable() {
               onChange={(e) =>
                 setFilters({ ...filters, startDate: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white dark-date-input"
             />
           </div>
           <div>
@@ -479,7 +478,7 @@ export default function AccountsReceivable() {
               onChange={(e) =>
                 setFilters({ ...filters, endDate: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white dark-date-input"
             />
           </div>
           <div className="flex items-end">
@@ -556,7 +555,7 @@ export default function AccountsReceivable() {
                   </td>
                 </tr>
               ) : (
-                debts.map((debt) => (
+                pageItems.map((debt) => (
                   <tr key={debt.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
@@ -575,14 +574,14 @@ export default function AccountsReceivable() {
                       {formatDate(debt.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${(debt.total || 0).toLocaleString("es-EC")}
+                      ${(debt.total || 0).toLocaleString("es-CO")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${(debt.totalPaid || 0).toLocaleString("es-EC")}
+                      ${(debt.totalPaid || 0).toLocaleString("es-CO")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-semibold text-red-600">
-                        ${(debt.totalDebt || 0).toLocaleString("es-EC")}
+                        ${(debt.totalDebt || 0).toLocaleString("es-CO")}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -614,7 +613,7 @@ export default function AccountsReceivable() {
                               </span>
                             )}
                             {installment.status === "PENDING" &&
-                              new Date(installment.dueDate) <=
+                              formatDateToColombia(installment.dueDate) <=
                                 new Date(
                                   Date.now() + 3 * 24 * 60 * 60 * 1000
                                 ) && (
@@ -691,7 +690,7 @@ export default function AccountsReceivable() {
             <div className="mb-4">
               <div className="text-sm text-gray-600">Total Venta</div>
               <div className="font-medium">
-                ${(paymentModal.totalAmount || 0).toLocaleString("es-EC")}
+                ${(paymentModal.totalAmount || 0).toLocaleString("es-CO")}
               </div>
             </div>
 
@@ -720,11 +719,15 @@ export default function AccountsReceivable() {
                     <div className="flex-1">
                       <div className="text-sm font-medium">
                         Cuota {installment.installmentNumber} - $
-                        {Number(installment.amountDue).toLocaleString("es-EC")}
+                        {Number(installment.amountDue).toLocaleString("es-CO")}
                       </div>
                       <div className="text-xs text-gray-500">
-                        Vence:{" "}
-                        {new Date(installment.dueDate).toLocaleDateString()}
+                        Vence: {" "}
+                        {formatDateToColombia(installment.dueDate, {
+                          hour: undefined,
+                          minute: undefined,
+                          second: undefined
+                        })}
                       </div>
                     </div>
                   </label>
@@ -735,7 +738,7 @@ export default function AccountsReceivable() {
             <div className="mb-4">
               <div className="text-sm text-gray-600">Total a Pagar</div>
               <div className="text-xl font-bold text-blue-600">
-                ${paymentForm.totalAmount.toLocaleString("es-EC")}
+                ${paymentForm.totalAmount.toLocaleString("es-CO")}
               </div>
             </div>
 
@@ -752,7 +755,7 @@ export default function AccountsReceivable() {
                       paymentMethod: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white"
                 >
                   <option value="CASH">Efectivo</option>
                   <option value="CARD">Tarjeta</option>

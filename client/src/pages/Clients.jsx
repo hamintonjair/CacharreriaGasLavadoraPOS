@@ -211,7 +211,7 @@ export default function Clients() {
               setPage(1);
             }}
             placeholder="Buscar..."
-            className="h-10 border rounded-lg px-3"
+            className="h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
           />
           <button
             onClick={() => {
@@ -356,7 +356,7 @@ export default function Clients() {
                     onChange={(e) =>
                       setFormData({ ...formData, nombre: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                     required
                   />
                 </div>
@@ -373,7 +373,7 @@ export default function Clients() {
                         identificacion: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                   />
                 </div>
                 <div>
@@ -386,7 +386,7 @@ export default function Clients() {
                     onChange={(e) =>
                       setFormData({ ...formData, telefono: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                   />
                 </div>
                 <div>
@@ -399,7 +399,7 @@ export default function Clients() {
                       setFormData({ ...formData, direccion: e.target.value })
                     }
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                   />
                 </div>
               </div>

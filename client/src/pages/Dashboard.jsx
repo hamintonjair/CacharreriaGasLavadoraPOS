@@ -289,7 +289,7 @@ export default function Dashboard() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full border rounded-md p-2 text-sm text-gray-900"
+                className="w-full border rounded-md p-2 text-sm bg-[#3B3B3B] text-white dark-date-input"
               />
             </div>
             <div>
@@ -298,7 +298,7 @@ export default function Dashboard() {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full border rounded-md p-2 text-sm text-gray-900"
+                className="w-full border rounded-md p-2 text-sm bg-[#3B3B3B] text-white dark-date-input"
               />
             </div>
           </div>

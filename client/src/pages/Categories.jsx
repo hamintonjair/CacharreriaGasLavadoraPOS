@@ -199,7 +199,7 @@ const confirmDelete = async () => {
               setPage(1);
             }}
             placeholder="Buscar..."
-            className="h-10 border rounded-lg px-3"
+            className="h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
           />
           <button
             className="h-10 px-4 rounded-lg bg-emerald-600 text-white font-semibold"
@@ -279,7 +279,7 @@ const confirmDelete = async () => {
           <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-4">
             <div className="text-lg font-bold mb-3">Añadir Categoría</div>
             <input
-              className="h-10 border rounded px-3 w-full"
+              className="h-10 border rounded px-3 w-full bg-[#3B3B3B] text-white placeholder:text-gray-300"
               placeholder="Nombre"
               value={form.nombre}
               onChange={(e) => setForm({ nombre: e.target.value })}
@@ -308,7 +308,7 @@ const confirmDelete = async () => {
           <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-4">
             <div className="text-lg font-bold mb-3">Editar Categoría</div>
             <input
-              className="h-10 border rounded px-3 w-full"
+              className="h-10 border rounded px-3 w-full bg-[#3B3B3B] text-white placeholder:text-gray-300"
               placeholder="Nombre"
               value={form.nombre}
               onChange={(e) => setForm({ nombre: e.target.value })}

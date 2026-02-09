@@ -329,7 +329,7 @@ export default function RentalReport() {
             <select
               value={filters.status}
               onChange={(e) => handleFilterChange("status", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-[#3B3B3B] text-white"
             >
               <option value="">Todos los estados</option>
               <option value="RENTED">Alquilado</option>
@@ -345,7 +345,7 @@ export default function RentalReport() {
             <select
               value={filters.clientId}
               onChange={(e) => handleFilterChange("clientId", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-[#3B3B3B] text-white"
             >
               <option value="">Todos los clientes</option>
               {clients.map((client) => (
@@ -364,7 +364,7 @@ export default function RentalReport() {
               type="date"
               value={filters.startDate}
               onChange={(e) => handleFilterChange("startDate", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-[#3B3B3B] text-white dark-date-input"
             />
           </div>
 
@@ -376,14 +376,14 @@ export default function RentalReport() {
               type="date"
               value={filters.endDate}
               onChange={(e) => handleFilterChange("endDate", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-[#3B3B3B] text-white dark-date-input"
             />
           </div>
         </div>
       </div>
 
       {/* Campo de búsqueda */}
-      <div className="mb-4">
+      <div className="mb-4 flex">
         <input
           value={search}
           onChange={(e) => {
@@ -391,7 +391,7 @@ export default function RentalReport() {
             setPage(1);
           }}
           placeholder="Buscar por cliente, lavadora, identificación o estado..."
-          className="w-full h-10 border rounded-lg px-3"
+          className="w-full max-w-xl h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
         />
       </div>
 

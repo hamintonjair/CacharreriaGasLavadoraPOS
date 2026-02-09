@@ -2,32 +2,14 @@ import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import ModalConfirmacion from "../components/ModalConfirmación";
-import { formatDateToColombia } from "../utils/dateUtils.js";
+import { formatDateToColombia, formatDateForInput } from "../utils/dateUtils.js";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Función helper para obtener fecha/hora mínima local (Colombia UTC-5)
 const getLocalDateTimeMin = () => {
-  // Usar formatDateToColombia para obtener la fecha actual en Colombia
   const now = new Date();
-  const colombiaDate = formatDateToColombia(now, {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-  
-  // Convertir DD/MM/YYYY HH:mm a YYYY-MM-DDTHH:mm
-  const [datePart, timePart] = colombiaDate.split(', ');
-  const [day, month, year] = datePart.split('/');
-  const [hours, minutes] = timePart.split(':');
-  
-  // Forzar la hora actual en Colombia sin minutos para evitar problemas
-  const result = `${year}-${month}-${day}T${hours}:00`;
-
-  return result;
+  return formatDateForInput(now);
 };
 
 export default function WashingMachines() {
@@ -614,7 +596,7 @@ export default function WashingMachines() {
               onChange={(e) =>
                 setMachineForm({ ...machineForm, description: e.target.value })
               }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-[#3B3B3B] text-white placeholder:text-gray-300"
               placeholder="Ej: Lavadora Samsung 8kg"
               required
             />
@@ -630,7 +612,7 @@ export default function WashingMachines() {
               onChange={(e) =>
                 setMachineForm({ ...machineForm, pricePerHour: e.target.value })
               }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-[#3B3B3B] text-white placeholder:text-gray-300"
               placeholder="5.00"
               required
             />
@@ -648,7 +630,7 @@ export default function WashingMachines() {
                   initialQuantity: parseInt(e.target.value),
                 })
               }
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-[#3B3B3B] text-white placeholder:text-gray-300"
               min="1"
               required
             />
@@ -718,7 +700,7 @@ export default function WashingMachines() {
               setPage(1);
             }}
             placeholder="Buscar lavadoras..."
-            className="h-10 border rounded-lg px-3"
+            className="h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
           />
         </div>
         {machinesLoading ? (
@@ -831,7 +813,7 @@ export default function WashingMachines() {
               setRentalsPage(1);
             }}
             placeholder="Buscar alquileres..."
-            className="h-10 border rounded-lg px-3"
+            className="h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
           />
         </div>
 
@@ -1061,7 +1043,7 @@ export default function WashingMachines() {
                       type="datetime-local"
                       value={deliveryDateTime}
                       onChange={(e) => setDeliveryDateTime(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-[#3B3B3B] text-white dark-date-input"
                       min={getLocalDateTimeMin()}
                     />
                   </div>
@@ -1080,7 +1062,7 @@ export default function WashingMachines() {
                           additionalPrice: parseFloat(e.target.value) || 0,
                         })
                       }
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                       placeholder="0.00"
                     />
                     <div className="text-xs text-gray-500 mt-1">
@@ -1111,7 +1093,7 @@ export default function WashingMachines() {
                           additionalPrice,
                         });
                       }}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                     />
                   </div>
                   <div>
@@ -1128,7 +1110,7 @@ export default function WashingMachines() {
                           additionalPrice: parseFloat(e.target.value),
                         })
                       }
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                       placeholder="0.00"
                       
                     />

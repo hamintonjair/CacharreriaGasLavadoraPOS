@@ -148,7 +148,7 @@ export default function Company() {
                   className="w-24 h-24 object-contain border rounded-lg"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = "https://res.cloudinary.com/dotrm9j1u/image/upload/v1764612009/company2-logos/company2-logo.jpg";
+                    e.target.src = "https://res.cloudinary.com/dotrm9j1u/image/upload/v1764612009/company-logos/company-logo.jpg";
                   }}
                 />
               ) : (
@@ -193,7 +193,7 @@ export default function Company() {
                 }
                 required
                 disabled={loading}
-                className="w-full h-10 border rounded-lg px-3"
+                className="w-full h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                 placeholder="Mi Empresa S.A."
               />
             </div>
@@ -210,7 +210,7 @@ export default function Company() {
                 }
                 required
                 disabled={loading}
-                className="w-full h-10 border rounded-lg px-3"
+                className="w-full h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                 placeholder="1234567890"
               />
             </div>
@@ -228,7 +228,7 @@ export default function Company() {
               }
               required
               disabled={loading}
-              className="w-full h-10 border rounded-lg px-3"
+              className="w-full h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
               placeholder="Calle Principal #123"
             />
           </div>
@@ -246,7 +246,7 @@ export default function Company() {
                 }
                 required
                 disabled={loading}
-                className="w-full h-10 border rounded-lg px-3"
+                className="w-full h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                 placeholder="+593 123 456 789"
               />
             </div>
@@ -262,7 +262,7 @@ export default function Company() {
                   setCompany((prev) => ({ ...prev, email: e.target.value }))
                 }
                 disabled={loading}
-                className="w-full h-10 border rounded-lg px-3"
+                className="w-full h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                 placeholder="empresa@ejemplo.com"
               />
             </div>

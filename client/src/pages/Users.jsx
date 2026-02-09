@@ -333,7 +333,7 @@ export default function Users() {
               setCurrentPage(1);
             }}
             placeholder="Buscar..."
-            className="h-10 border rounded-lg px-3"
+            className="h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
           />
           <button
             onClick={() => openModal("create")}
@@ -497,7 +497,7 @@ export default function Users() {
                               formErrors.nombre
                                 ? "border-red-500"
                                 : "border-gray-300"
-                            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-[#3B3B3B] text-white placeholder:text-gray-300`}
                             placeholder="Ej: Juan Pérez"
                           />
                           {formErrors.nombre && (
@@ -524,7 +524,7 @@ export default function Users() {
                               formErrors.username
                                 ? "border-red-500"
                                 : "border-gray-300"
-                            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-[#3B3B3B] text-white placeholder:text-gray-300`}
                             placeholder="Ej: juan.perez"
                           />
                           {formErrors.username && (
@@ -553,7 +553,7 @@ export default function Users() {
                               formErrors.password
                                 ? "border-red-500"
                                 : "border-gray-300"
-                            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-[#3B3B3B] text-white placeholder:text-gray-300`}
                             placeholder={
                               modal.mode === "create"
                                 ? "Mínimo 6 caracteres"
@@ -583,7 +583,7 @@ export default function Users() {
                               formErrors.role
                                 ? "border-red-500"
                                 : "border-gray-300"
-                            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm`}
+                            } rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-[#3B3B3B] text-white`}
                           >
                             {ROLES.map((role) => (
                               <option key={role.value} value={role.value}>

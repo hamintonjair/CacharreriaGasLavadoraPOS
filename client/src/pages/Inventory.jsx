@@ -338,7 +338,7 @@ const confirmDeleteGas = async () => {
               <select 
                 value={pCategoryFilter} 
                 onChange={(e)=>{setPCategoryFilter(e.target.value); setPPage(1)}} 
-                className="h-10 border rounded-lg px-2 w-full sm:w-auto"
+                className="h-10 border rounded-lg px-2 w-full sm:w-auto bg-[#3B3B3B] text-white"
               >
                 <option value="all">Todas</option>
                 {categories.map(c => (<option key={c.id} value={String(c.id)}>{c.nombre}</option>))}
@@ -348,7 +348,7 @@ const confirmDeleteGas = async () => {
                   value={pQuery} 
                   onChange={(e)=>{setPQuery(e.target.value); setPPage(1)}} 
                   placeholder="Buscar..." 
-                  className="h-10 border rounded-lg px-3 flex-1 min-w-0"
+                  className="h-10 border rounded-lg px-3 flex-1 min-w-0 text-white placeholder:text-gray-300"
                 />
                 <button
                   className="h-10 px-4 rounded-lg bg-emerald-600 text-white font-semibold whitespace-nowrap"
@@ -416,17 +416,17 @@ const confirmDeleteGas = async () => {
               <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-4">
                 <div className="text-lg font-bold mb-3">Añadir Producto</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input className="h-10 border rounded px-3" placeholder="Nombre" value={pForm.nombre} onChange={e=>setPForm({...pForm, nombre:e.target.value})}/>
-                  <input className="h-10 border rounded px-3" placeholder="Código Barras" value={pForm.codigo_barras} onChange={e=>setPForm({...pForm, codigo_barras:e.target.value})}/>
-                  <select className="h-10 border rounded px-3" value={pForm.categoryId} onChange={e=>setPForm({...pForm, categoryId:e.target.value})}>
+                  <input className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="Nombre" value={pForm.nombre} onChange={e=>setPForm({...pForm, nombre:e.target.value})}/>
+                  <input className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="Código Barras" value={pForm.codigo_barras} onChange={e=>setPForm({...pForm, codigo_barras:e.target.value})}/>
+                  <select className="h-10 border rounded px-3 bg-[#3B3B3B] text-white" value={pForm.categoryId} onChange={e=>setPForm({...pForm, categoryId:e.target.value})}>
                     <option value="">Selecciona categoría</option>
                     {categories.map(c => (<option key={c.id} value={String(c.id)}>{c.nombre}</option>))}
                   </select>
-                  <input type="number" className="h-10 border rounded px-3" placeholder="Precio Venta" value={pForm.precio_venta} onChange={e=>setPForm({...pForm, precio_venta:e.target.value})}/>
-                  <input type="number" className="h-10 border rounded px-3" placeholder="Costo" value={pForm.costo} onChange={e=>setPForm({...pForm, costo:e.target.value})}/>
-                  <input type="number" step="0.1" min="0" max="100" className="h-10 border rounded px-3" placeholder="IVA (%)" value={pForm.taxRate} onChange={e=>setPForm({...pForm, taxRate:e.target.value})}/>
-                  <input type="number" className="h-10 border rounded px-3" placeholder="Stock" value={pForm.stock} onChange={e=>setPForm({...pForm, stock:e.target.value})}/>
-                  <input type="number" className="h-10 border rounded px-3" placeholder="Stock Mínimo" value={pForm.stock_minimo} onChange={e=>setPForm({...pForm, stock_minimo:e.target.value})}/>
+                  <input type="number" className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="Precio Venta" value={pForm.precio_venta} onChange={e=>setPForm({...pForm, precio_venta:e.target.value})}/>
+                  <input type="number" className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="Costo" value={pForm.costo} onChange={e=>setPForm({...pForm, costo:e.target.value})}/>
+                  <input type="number" step="0.1" min="0" max="100" className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="IVA (%)" value={pForm.taxRate} onChange={e=>setPForm({...pForm, taxRate:e.target.value})}/>
+                  <input type="number" className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="Stock" value={pForm.stock} onChange={e=>setPForm({...pForm, stock:e.target.value})}/>
+                  <input type="number" className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="Stock Mínimo" value={pForm.stock_minimo} onChange={e=>setPForm({...pForm, stock_minimo:e.target.value})}/>
                 </div>
                 <div className="mt-4 flex justify-end gap-2">
                   <button className="h-10 px-4 rounded bg-gray-100" onClick={()=>{
@@ -474,7 +474,7 @@ const confirmDeleteGas = async () => {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
             <h2 className="text-lg font-semibold">Inventario de Gas</h2>
             <div className="flex items-center gap-2">
-              <input value={gQuery} onChange={(e)=>{setGQuery(e.target.value); setGPage(1)}} placeholder="Buscar..." className="h-10 border rounded-lg px-3"/>
+              <input value={gQuery} onChange={(e)=>{setGQuery(e.target.value); setGPage(1)}} placeholder="Buscar..." className="h-10 border rounded-lg px-3 text-white placeholder:text-gray-300"/>
               
               <button
                 className="h-10 px-4 rounded-lg bg-emerald-600 text-white font-semibold"
@@ -535,11 +535,11 @@ const confirmDeleteGas = async () => {
               <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-4">
                 <div className="text-lg font-bold mb-3">Añadir Tipo de Gas</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input className="h-10 border rounded px-3" placeholder="Tipo (ej: 40lb)" value={gForm.nombre} onChange={e=>setGForm({...gForm, nombre:e.target.value})}/>
-                  <input type="number" className="h-10 border rounded px-3" placeholder="Precio Venta" value={gForm.precio_venta} onChange={e=>setGForm({...gForm, precio_venta:e.target.value})}/>
-                  <input type="number" className="h-10 border rounded px-3" placeholder="Precio Envase" value={gForm.precio_envase} onChange={e=>setGForm({...gForm, precio_envase:e.target.value})}/>
-                  <input type="number" className="h-10 border rounded px-3" placeholder="Stock Inicial Llenos" value={gForm.stock_llenos} onChange={e=>setGForm({...gForm, stock_llenos:e.target.value})}/>
-                  <input type="number" className="h-10 border rounded px-3" placeholder="Stock Inicial Vacíos" value={gForm.stock_vacios} onChange={e=>setGForm({...gForm, stock_vacios:e.target.value})}/>
+                  <input className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="Tipo (ej: 40lb)" value={gForm.nombre} onChange={e=>setGForm({...gForm, nombre:e.target.value})}/>
+                  <input type="number" className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="Precio Venta" value={gForm.precio_venta} onChange={e=>setGForm({...gForm, precio_venta:e.target.value})}/>
+                  <input type="number" className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="Precio Envase" value={gForm.precio_envase} onChange={e=>setGForm({...gForm, precio_envase:e.target.value})}/>
+                  <input type="number" className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="Stock Inicial Llenos" value={gForm.stock_llenos} onChange={e=>setGForm({...gForm, stock_llenos:e.target.value})}/>
+                  <input type="number" className="h-10 border rounded px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300" placeholder="Stock Inicial Vacíos" value={gForm.stock_vacios} onChange={e=>setGForm({...gForm, stock_vacios:e.target.value})}/>
                 </div>
                 <div className="mt-4 flex justify-end gap-2">
                   <button className="h-10 px-4 rounded bg-gray-100" onClick={()=>{

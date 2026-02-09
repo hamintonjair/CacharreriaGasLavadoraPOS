@@ -1351,7 +1351,7 @@ const handlePrintInvoice = () => {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar o escanear código de barras"
-          className="flex-1 border rounded-lg px-4 h-12 text-lg"
+          className="flex-1 border rounded-lg px-4 h-12 text-lg bg-[#3B3B3B] text-white placeholder:text-gray-300"
         />
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2">
@@ -1602,7 +1602,7 @@ const handlePrintInvoice = () => {
                         : deliveryDateTime,
                   });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-[#3B3B3B] text-white"
                 required
               >
                 <option value="">Seleccionar lavadora...</option>
@@ -1640,7 +1640,7 @@ const handlePrintInvoice = () => {
                       scheduledReturnDate: calculateReturnDate(hours),
                     });
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                 />
               </div>
             )}
@@ -1679,7 +1679,7 @@ const handlePrintInvoice = () => {
                       rentalPrice: newRentalPrice,
                     }));
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                   placeholder="0.00"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -1704,7 +1704,7 @@ const handlePrintInvoice = () => {
                       scheduledReturnDate: e.target.value,
                     }));
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-[#3B3B3B] text-white dark-date-input"
                 />
               </div>
             )}
@@ -1804,7 +1804,7 @@ const handlePrintInvoice = () => {
               onChange={handleClientSearchChange}
               onFocus={() => setShowClientDropdown(true)}
               placeholder="Buscar por nombre o cédula..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-[#3B3B3B] text-white placeholder:text-gray-300"
             />
             <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1867,7 +1867,7 @@ const handlePrintInvoice = () => {
                   setClientSearch("");
                 }
               }}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
             >
               <option value="">Seleccionar cliente...</option>
               {clients.map((client) => (
@@ -2065,7 +2065,7 @@ const handlePrintInvoice = () => {
                       handleCreditModal(false);
                     }
                   }}
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-[#3B3B3B] text-white"
                 >
                   <option value="CASH">Efectivo</option>
                   <option value="TRANSFER">Transferencia</option>
@@ -2127,7 +2127,7 @@ const handlePrintInvoice = () => {
                   className={`w-full px-2 py-1 text-sm border border-gray-300 rounded ${
                     payments[0]?.method === "CREDIT"
                       ? "bg-gray-100 cursor-not-allowed"
-                      : ""
+                      : "bg-[#3B3B3B] text-white placeholder:text-gray-300"
                   }`}
                   placeholder="0.00"
                   min="0"
@@ -2183,6 +2183,7 @@ const handlePrintInvoice = () => {
                         }
                       }
                     }}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-[#3B3B3B] text-white"
                   >
                     <option value="CASH">Efectivo</option>
                     <option value="TRANSFER">Transferencia</option>
@@ -2444,7 +2445,7 @@ const handlePrintInvoice = () => {
                     totalWithInterest,
                   }));
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-[#3B3B3B] text-white"
               />
             </div>
 
@@ -2466,7 +2467,7 @@ const handlePrintInvoice = () => {
                     totalWithInterest,
                   }));
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-[#3B3B3B] text-white"
               >
                 <option value="DIARIO">Diario</option>
                 <option value="SEMANAL">Semanal</option>
@@ -2494,7 +2495,7 @@ const handlePrintInvoice = () => {
                     totalWithInterest,
                   }));
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-[#3B3B3B] text-white dark-date-input"
                 min={getLocalDateMin()}
               />
             </div>
@@ -2572,7 +2573,7 @@ const handlePrintInvoice = () => {
                       value: e.target.value,
                     }));
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4 bg-[#3B3B3B] text-white placeholder:text-gray-300"
                   placeholder={
                     interestValueModal.type === "PORCENTAJE"
                       ? "Ej: 5.5"

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { formatDateToColombia } from '../utils/dateUtils.js';
 
 // Card component for report sections
 const ReportCard = ({ title, children, className = '' }) => (
@@ -41,7 +42,11 @@ export default function Reports() {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
-    console.log('Fecha calculada:', dateStr, 'Fecha local:', now.toLocaleDateString());
+    console.log('Fecha calculada:', dateStr, 'Fecha local:', formatDateToColombia(new Date(), {
+      hour: undefined,
+      minute: undefined,
+      second: undefined
+    }));
     setStartDate(dateStr);
     setEndDate(dateStr);
   }, []);
@@ -138,34 +143,9 @@ export default function Reports() {
       return;
     }
     
-    // Función segura para formatear fechas (igual que POS)
+    // Función segura para formatear fechas (usando formatDateToColombia)
     const safeFormatDate = (date) => {
-      if (!date) return 'N/A';
-      try {
-        let dateObj;
-        
-        if (typeof date === 'string') {
-          if (date.includes('T')) {
-            dateObj = new Date(date);
-          } else {
-            dateObj = new Date(date.replace(' ', 'T'));
-          }
-        } else {
-          dateObj = new Date(date);
-        }
-          
-        if (isNaN(dateObj.getTime())) return 'N/A';
-        
-        return dateObj.toLocaleString('es-EC', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      } catch {
-        return 'N/A';
-      }
+      return formatDateToColombia(date);
     };
 
     // Función para formatear moneda (igual que POS)
@@ -449,7 +429,7 @@ export default function Reports() {
                   <div class="text-sm text-gray-600 mb-2">FACTURA</div>
                   <div class="text-lg font-bold">#${reprintSale.id}</div>
                   <div class="text-sm text-gray-600 mt-2">
-                    <div>Fecha: ${safeFormatDate(reprintSale.fecha || reprintSale.createdAt)}</div>
+                    <div>Fecha: ${formatDateToColombia(reprintSale.fecha || reprintSale.createdAt)}</div>
                   </div>
                 </div>
               </div>
@@ -770,11 +750,14 @@ export default function Reports() {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800">Reportes</h1>
           <div className="text-sm text-gray-500">
-            {new Date().toLocaleDateString('es-ES', { 
+            {formatDateToColombia(new Date(), {
               weekday: 'long', 
               year: 'numeric', 
               month: 'long', 
-              day: 'numeric' 
+              day: 'numeric',
+              hour: undefined,
+              minute: undefined,
+              second: undefined
             })}
           </div>
         </div>
@@ -843,7 +826,7 @@ export default function Reports() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full border rounded-md p-2 text-sm text-gray-900"
+                  className="w-full border rounded-md p-2 text-sm bg-[#3B3B3B] text-white"
                 />
               </div>
               <div>
@@ -852,7 +835,7 @@ export default function Reports() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full border rounded-md p-2 text-sm text-gray-900"
+                  className="w-full border rounded-md p-2 text-sm bg-[#3B3B3B] text-white"
                 />
               </div>
               <div>
@@ -860,14 +843,13 @@ export default function Reports() {
                 <select 
                   value={metodoPago}
                   onChange={(e) => setMetodoPago(e.target.value)}
-                  className="w-full border rounded-md p-2 text-sm text-gray-900"
-                  style={{ color: '#111827' }}
+                  className="w-full border rounded-md p-2 text-sm bg-[#3B3B3B] text-white"
                 >
-                  <option value="" style={{ color: '#111827' }}>Todos</option>
-                  <option value="CASH" style={{ color: '#111827' }}>Efectivo</option>
-                  <option value="TRANSFER" style={{ color: '#111827' }}>Transferencia</option>
-                  <option value="CREDIT" style={{ color: '#111827' }}>Crédito</option>
-                  <option value="CREDIT_CARD" style={{ color: '#111827' }}>Tarjeta de Crédito</option>
+                  <option value="">Todos</option>
+                  <option value="CASH">Efectivo</option>
+                  <option value="TRANSFER">Transferencia</option>
+                  <option value="CREDIT">Crédito</option>
+                  <option value="CREDIT_CARD">Tarjeta de Crédito</option>
 
                 </select>
               </div>
@@ -876,12 +858,11 @@ export default function Reports() {
                 <select 
                   value={sellerId}
                   onChange={(e) => setSellerId(e.target.value)}
-                  className="w-full border rounded-md p-2 text-sm text-gray-900"
-                  style={{ color: '#111827' }}
+                  className="w-full border rounded-md p-2 text-sm bg-[#3B3B3B] text-white"
                 >
-                  <option value="" style={{ color: '#111827' }}>Todos</option>
+                  <option value="">Todos</option>
                   {users.map(user => (
-                    <option key={user.id} value={user.id} style={{ color: '#111827' }}>
+                    <option key={user.id} value={user.id}>
                       {user.nombre || user.name || `Usuario ${user.id}`}
                     </option>
                   ))}
