@@ -45,26 +45,26 @@ export default function Login({ onSuccess }) {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="username">Usuario</label>
+            <label className="block text-sm font-medium mb-1 text-black" htmlFor="username">Usuario</label>
             <input
               id="username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 h-12 bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full border border-gray-200 rounded-lg px-3 h-12 bg-white/50 backdrop-blur-sm text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               placeholder="admin"
               autoComplete="username"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="password">Contraseña</label>
+            <label className="block text-sm font-medium mb-1 text-black" htmlFor="password">Contraseña</label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 h-12 bg-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full border border-gray-200 rounded-lg px-3 h-12 bg-white/50 backdrop-blur-sm text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               placeholder="••••••••"
               autoComplete="current-password"
               required
