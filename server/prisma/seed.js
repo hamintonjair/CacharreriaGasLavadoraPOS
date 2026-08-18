@@ -4,7 +4,10 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Iniciando seeder...')
+  console.log('🌱 El seeder ha sido desactivado. No se insertarán datos por defecto.')
+  
+  /*
+  // --- CÓDIGO COMENTADO PARA EVITAR QUE SE CREEN REGISTROS POR DEFECTO ---
 
   // 1. Usuarios
   const adminPassword = await bcrypt.hash('admin123', 10)
@@ -127,6 +130,7 @@ async function main() {
 
   console.log('✅ Productos creados')
   console.log('🌱 Base de datos poblada exitosamente.')
+  */
 }
 
 main()
