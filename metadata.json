@@ -1,0 +1,8 @@
+{
+  "name": "Cacharrería Gas POS",
+  "description": "Sistema POS y gestión de ventas de gas, cacharrería y alquiler de lavadoras",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -11,7 +11,7 @@ toast.success = (message, duration = 3000) =>
   toast(message, "success", duration);
 toast.error = (message, duration = 3000) => toast(message, "error", duration);
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 const ROLES = [
   { value: "ADMIN", label: "Administrador" },
@@ -51,14 +51,15 @@ export default function Users() {
   const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const url = new URL(`${API_URL}/users`);
-      url.searchParams.append("page", currentPage);
-      url.searchParams.append("limit", itemsPerPage);
+      const params = new URLSearchParams({
+        page: String(currentPage),
+        limit: String(itemsPerPage),
+      });
       if (searchTerm) {
-        url.searchParams.append("search", searchTerm);
+        params.append("search", searchTerm);
       }
 
-      const response = await fetch(url.toString(), {
+      const response = await fetch(`${API_URL}/users?${params.toString()}`, {
         headers: {
           "Content-Type": "application/json",
           ...headers,
@@ -316,12 +317,12 @@ export default function Users() {
 
   return (
     <section className="relative p-4 border rounded-xl bg-white">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between mb-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Gestión de Usuarios
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
             Administra el registro de usuarios del sistema
           </p>
         </div>

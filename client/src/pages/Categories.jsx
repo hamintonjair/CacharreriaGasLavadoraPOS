@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ModalConfirmacion from "../components/ModalConfirmación";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export default function Categories() {
   const token = localStorage.getItem("auth_token");
@@ -182,12 +182,12 @@ const confirmDelete = async () => {
 
   return (
     <section className="relative p-4 border rounded-xl bg-white">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between mb-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Gestión de Categorías
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
             Administra el registro de categorías del sistema
           </p>
         </div>

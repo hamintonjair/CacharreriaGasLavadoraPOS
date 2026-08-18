@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import Invoice from "../components/Invoice.jsx";
 import { formatDateToColombia } from "../utils/dateUtils.js";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 // const LOGO_URL = import.meta.env.VITE_LOGO_URL;
 
 // Función helper para obtener fecha mínima local (Colombia UTC-5)

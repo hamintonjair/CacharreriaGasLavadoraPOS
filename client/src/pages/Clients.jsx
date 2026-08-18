@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import ModalConfirmacion from "../components/ModalConfirmación";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export default function Clients() {
   const token = localStorage.getItem("auth_token");
@@ -194,12 +194,12 @@ export default function Clients() {
   }
   return (
     <section className="relative p-4 border rounded-xl bg-white">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between mb-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Gestión de Clientes
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
             Administra el registro de clientes del sistema
           </p>
         </div>
@@ -210,7 +210,7 @@ export default function Clients() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Buscar..."
+            placeholder="Buscar por nombre, cédula o teléfono..."
             className="h-10 border rounded-lg px-3 bg-[#3B3B3B] text-white placeholder:text-gray-300"
           />
           <button
@@ -356,7 +356,8 @@ export default function Clients() {
                     onChange={(e) =>
                       setFormData({ ...formData, nombre: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-300"
+                    placeholder="Ej: Juan Pérez"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-400"
                     required
                   />
                 </div>
@@ -373,7 +374,8 @@ export default function Clients() {
                         identificacion: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-300"
+                    placeholder="Ej: 1085234567 o NIT"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-400"
                   />
                 </div>
                 <div>
@@ -386,7 +388,8 @@ export default function Clients() {
                     onChange={(e) =>
                       setFormData({ ...formData, telefono: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-300"
+                    placeholder="Ej: 3001234567"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-400"
                   />
                 </div>
                 <div>
@@ -399,7 +402,8 @@ export default function Clients() {
                       setFormData({ ...formData, direccion: e.target.value })
                     }
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-300"
+                    placeholder="Ej: Calle 10 # 20-30, Barrio Centro"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-[#3B3B3B] text-white placeholder:text-gray-400"
                   />
                 </div>
               </div>

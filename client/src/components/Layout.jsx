@@ -22,7 +22,7 @@ export default function Layout({
           <div className="p-4 border-b border-white/10">
             <div className="text-lg font-bold">Menú</div>
           </div>
-          <nav className="flex-1 p-3 space-y-2">
+          <nav className="p-3 space-y-2">
             {isAdmin && (
               <button
                 onClick={() => setView("DASHBOARD")}
@@ -144,9 +144,9 @@ export default function Layout({
             )}
             {isAdmin && (
               <button
-                onClick={() => setView("RENTAL_REPORT")} // <-- CAMBIAR ESTO
+                onClick={() => setView("RENTAL_REPORT")}
                 className={`w-full h-12 rounded-lg px-3 text-left font-semibold ${
-                  view === "RENTAL_REPORT" // <-- Y ESTO
+                  view === "RENTAL_REPORT"
                     ? "bg-white text-gray-900"
                     : "bg-white/10 hover:bg-white/20"
                 }`}
@@ -154,51 +154,68 @@ export default function Layout({
                 📊 Historial de Alquileres
               </button>
             )}
+
+            <div className="pt-2 border-t border-white/10 mt-3">
+              <button
+                onClick={onLogout}
+                className="w-full h-12 rounded-lg px-3 text-left bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors flex items-center gap-2"
+              >
+                🚪 Cerrar Sesión
+              </button>
+            </div>
           </nav>
-          <div className="p-3 border-t border-white/10">
-            <button
-              onClick={onLogout}
-              className="w-full h-12 rounded-lg bg-red-600 hover:bg-red-700 font-semibold"
-            >
-              Salir
-            </button>
-          </div>
         </div>
       </aside>
 
       {/* Main area */}
       <div className="col-span-12 md:col-span-10 min-h-screen bg-gray-50">
         {/* Header */}
-        <header className="h-16 bg-white border-b px-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="text-xl font-bold">{companyName}</div>
-            <div className="hidden md:block text-sm text-gray-500">
-              Sesión iniciada como {user?.nombre || user?.username}
+        <header className="bg-white border-b px-3 sm:px-4 py-2.5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
+            {/* Business info */}
+            <div className="flex items-center justify-between min-w-0">
+              <div className="text-base sm:text-lg md:text-xl font-bold text-gray-900 leading-tight">
+                {companyName}
+              </div>
+              <div className="hidden md:block text-xs sm:text-sm text-gray-500 ml-3">
+                Sesión iniciada como {user?.nombre || user?.username}
+              </div>
             </div>
-          </div>
-          {/* Mobile menu (simple) */}
-          <div className="md:hidden flex items-center gap-2">
-            <select
-              className="h-10 border rounded-lg px-2"
-              value={view}
-              onChange={(e) => setView(e.target.value)}
-            >
-              <option value="POS">Venta / POS</option>
-              {isAdmin && <option value="COMPANY">Empresa</option>}
-              {isAdmin && <option value="REPORTS">Reportes</option>}
-              {isAdmin && <option value="INVENTORY">Inventario</option>}
-              {isAdmin && <option value="CATEGORIES">Categorías</option>}
-              {isAdmin && <option value="CLIENTS">Clientes</option>}
-              {isAdmin && <option value="USERS">Usuarios</option>}
-              {isAdmin && <option value="WASHING_MACHINES">Lavadoras</option>}
-              {isAdmin && <option value="RENTAL_REPORT">Historial de Alquileres</option>}
-            </select>
-            <button
-              onClick={onLogout}
-              className="h-10 px-3 rounded-lg bg-gray-900 text-white"
-            >
-              Salir
-            </button>
+
+            {/* Mobile Navigation Selector & Logout */}
+            <div className="md:hidden flex items-center gap-2 w-full">
+              <select
+                className="flex-1 h-9 min-w-0 border border-gray-300 rounded-lg px-2.5 text-xs sm:text-sm bg-white font-medium text-gray-800 focus:ring-2 focus:ring-blue-500"
+                value={view}
+                onChange={(e) => setView(e.target.value)}
+              >
+                {isAdmin && <option value="DASHBOARD">🏡 Dashboard</option>}
+                {isAdmin && <option value="COMPANY">🏢 Empresa</option>}
+                <option value="POS">🛒 Venta / POS</option>
+                {isAdmin && <option value="REPORTS">📈 Reportes</option>}
+                {isAdmin && <option value="INVENTORY">📦 Inventario</option>}
+                {isAdmin && <option value="CATEGORIES">📁 Categorías</option>}
+                {(isAdmin || user?.role === "VENDEDOR") && (
+                  <option value="CLIENTS">👥 Clientes</option>
+                )}
+                {isAdmin && <option value="USERS">👥 Usuarios</option>}
+                {(isAdmin || user?.role === "VENDEDOR") && (
+                  <option value="WASHING_MACHINES">🧺 Lavadoras</option>
+                )}
+                {isAdmin && (
+                  <option value="ACCOUNTS_RECEIVABLE">💰 Cuentas por Cobrar</option>
+                )}
+                {isAdmin && (
+                  <option value="RENTAL_REPORT">📊 Historial Alquileres</option>
+                )}
+              </select>
+              <button
+                onClick={onLogout}
+                className="h-9 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold shrink-0 whitespace-nowrap"
+              >
+                Cerrar Sesión
+              </button>
+            </div>
           </div>
         </header>
 

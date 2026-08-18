@@ -1,6 +1,6 @@
 import { Router } from "express";
 import ExcelJS from "exceljs";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import auth from "../middleware/auth.js";
@@ -9,52 +9,27 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import sharp from "sharp";
-import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
 const router = Router();
-const prisma = new PrismaClient();
-
-// 🔥 CONFIGURACIÓN CLOUDINARY
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || process.env.NOMBRE_CLOUDINARY,
-  api_key: process.env.CLOUDINARY_API_KEY || process.env.CLAVE_API_CLOUDINARY,
-  api_secret: process.env.CLOUDINARY_API_SECRET || process.env.SECRET_CLOUDINARY
-});
-
-// 🔥 CONFIGURACIÓN DE MULTER PARA CLOUDINARY
-// 🔥 CONFIGURACIÓN DE MULTER PARA CLOUDINARY
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: (req, file) => {
-    return {
-      folder: 'company-logos',
-      allowed_formats: ['jpg', 'jpeg', 'png'],
-      public_id: 'company-logo',
-      overwrite: true,
-      resource_type: 'image'
-    };
-  }
-});
 
 // Configuración de Multer para subida de logos
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     const uploadDir = path.join(process.cwd(), "public", "uploads", "logos");
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "logos");
 
-//     // Crear directorio si no existe
-//     if (!fs.existsSync(uploadDir)) {
-//       fs.mkdirSync(uploadDir, { recursive: true });
-//     }
+    // Crear directorio si no existe
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
 
-//     cb(null, uploadDir);
-//   },
-//   filename: function (req, file, cb) {
-//     // Generar nombre único para el archivo
-//     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-//     const ext = path.extname(file.originalname);
-//     cb(null, "logo-" + uniqueSuffix + ext);
-//   },
-// });
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // Generar nombre único para el archivo
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, "logo-" + uniqueSuffix + ext);
+  },
+});
 
 const upload = multer({
   storage: storage,
@@ -86,9 +61,7 @@ router.post("/auth/login", async (req, res) => {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: "Credenciales inválidas" });
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret)
-      return res.status(500).json({ error: "JWT_SECRET no configurado" });
+    const secret = process.env.JWT_SECRET || 'cacharreria_pos_jwt_secret_key_default_2026';
 
     const token = jwt.sign(
       { sub: user.id, username: user.username, role: user.role },
@@ -891,19 +864,7 @@ router.post("/gastypes/update-stock", auth, async (req, res) => {
   }
 });
 
-// GET /api/users - temporal para verificar admin
-router.get("/users", async (req, res) => {
-  try {
-    const users = await prisma.user.findMany({
-      select: { id: true, nombre: true, username: true, role: true },
-      orderBy: { id: "asc" },
-    });
-    res.json(users);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error obteniendo usuarios" });
-  }
-});
+
 
 // POST /api/sales - registrar venta completa (protegido)
 // body: { userId, clientId, items: [...], payments: [...], creditInstallments?: [...] }
@@ -2459,24 +2420,7 @@ router.put("/company", auth, async (req, res) => {
     }
 
     // Obtener o crear la empresa
-    // 🔥 ELIMINAR LOGO ANTIGUO si existe
     let company = await prisma.company.findFirst();
-    if (company && company.logo_url) {
-      const oldLogoPath = path.join(
-        process.cwd(),
-        "server",
-        "public",
-        company.logo_url
-      );
-      try {
-        if (fs.existsSync(oldLogoPath)) {
-          fs.unlinkSync(oldLogoPath);
-          console.log("🗑️ Logo antiguo eliminado:", oldLogoPath);
-        }
-      } catch (error) {
-        console.error("⚠️ Error eliminando logo antiguo:", error);
-      }
-    }
 
     if (company) {
       // Actualizar existente
@@ -2523,15 +2467,28 @@ router.post("/company/logo", auth, upload.single("logo"), async (req, res) => {
       return res.status(400).json({ error: "No se subió ningún archivo" });
     }
 
-    // 🔥 OBTENER URL DE CLOUDINARY (Cloudinary devuelve la URL en req.file.path)
-    const logoUrl = req.file.path;
+    // URL local del logo
+    const logoUrl = `/uploads/logos/${req.file.filename}`;
 
-    console.log("✅ Logo subido a Cloudinary:", logoUrl);
+    console.log("✅ Logo subido localmente:", logoUrl);
 
     // Obtener o crear la empresa
     let existingCompany = await prisma.company.findFirst();
 
     if (existingCompany) {
+      // Eliminar el logo antiguo del disco si existe
+      if (existingCompany.logo_url && existingCompany.logo_url.startsWith('/uploads/')) {
+        const oldLogoPath = path.join(process.cwd(), 'public', existingCompany.logo_url);
+        try {
+          if (fs.existsSync(oldLogoPath)) {
+            fs.unlinkSync(oldLogoPath);
+            console.log("🗑️ Logo antiguo eliminado:", oldLogoPath);
+          }
+        } catch (error) {
+          console.error("⚠️ Error eliminando logo antiguo:", error);
+        }
+      }
+
       // Actualizar logo_url en empresa existente
       existingCompany = await prisma.company.update({
         where: { id: existingCompany.id },
@@ -2552,15 +2509,15 @@ router.post("/company/logo", auth, upload.single("logo"), async (req, res) => {
     }
 
     res.json({
-      message: "Logo subido correctamente a Cloudinary",
+      message: "Logo subido correctamente de forma local",
       logo_url: logoUrl,
       company: existingCompany,
     });
 
   } catch (err) {
-    console.error("Error uploading logo to Cloudinary:", err);
+    console.error("Error uploading logo locally:", err);
     res.status(500).json({ 
-      error: "Error subiendo logo a Cloudinary",
+      error: "Error subiendo logo al servidor local",
       details: err.message 
     });
   }
@@ -2611,8 +2568,39 @@ router.get("/washing-machines", auth, async (req, res) => {
       prisma.washingMachine.count({ where }),
     ]);
 
+    // Calcular en tiempo real las lavadoras alquiladas activas (RENTED u OVERDUE)
+    const activeRentalsList = await prisma.rental.findMany({
+      where: {
+        status: { in: ["RENTED", "OVERDUE"] },
+      },
+      select: {
+        id: true,
+        washingMachineId: true,
+      },
+    });
+
+    const activeCountsByMachine = {};
+    for (const r of activeRentalsList) {
+      if (r.washingMachineId) {
+        activeCountsByMachine[r.washingMachineId] =
+          (activeCountsByMachine[r.washingMachineId] || 0) + 1;
+      }
+    }
+
+    const synchronizedMachines = machines.map((m) => {
+      const rentedCount = activeCountsByMachine[m.id] || 0;
+      const initial = Number(m.initialQuantity) || 0;
+      const calculatedAvailable = Math.max(0, initial - rentedCount);
+      return {
+        ...m,
+        initialQuantity: initial,
+        availableQuantity: calculatedAvailable,
+        rentedQuantity: rentedCount,
+      };
+    });
+
     res.json({
-      data: machines,
+      data: synchronizedMachines,
       pagination: {
         total,
         page: pageNumber,
@@ -3203,17 +3191,17 @@ router.put("/rentals/:id/deliver", auth, async (req, res) => {
       return res.status(400).json({ error: "ID de alquiler inválido" });
     }
 
-    // Verificar que el alquiler existe y está en estado RENTED
+    // Verificar que el alquiler existe y está en estado RENTED u OVERDUE
     const rental = await prisma.rental.findUnique({
       where: { id: rentalId },
       include: {
-        washingMachine: { select: { id: true, description: true } },
+        washingMachine: { select: { id: true, description: true, initialQuantity: true, availableQuantity: true } },
       },
     });
     if (!rental) {
       return res.status(404).json({ error: "Alquiler no encontrado" });
     }
-    if (rental.status !== "RENTED") {
+    if (rental.status !== "RENTED" && rental.status !== "OVERDUE") {
       return res
         .status(400)
         .json({ error: "El alquiler ya fue entregado o cancelado" });
@@ -3320,7 +3308,7 @@ router.get("/rentals/overdue", auth, async (req, res) => {
 
 
 
-// PUT /api/rentals/:id - Actualizar alquiler (extender horas) (ADMIN/VENDEDOR)
+// PUT /api/rentals/:id - Actualizar alquiler (extender horas / amanecida) (ADMIN/VENDEDOR)
 router.put("/rentals/:id", auth, async (req, res) => {
   try {
     if (
@@ -3335,7 +3323,7 @@ router.put("/rentals/:id", auth, async (req, res) => {
       return res.status(400).json({ error: "ID de alquiler inválido" });
     }
 
-    const { scheduledReturnDate, additionalPrice, rentalType, isExtension } =
+    const { scheduledReturnDate, additionalPrice, rentalType, isExtension, hours } =
       req.body;
 
     if (!scheduledReturnDate) {
@@ -3344,7 +3332,7 @@ router.put("/rentals/:id", auth, async (req, res) => {
         .json({ error: "scheduledReturnDate es requerido" });
     }
 
-    // 🔥 VERIFICAR QUE EL ALQUILER EXISTE Y ESTÁ ACTIVO
+    // Verificar que el alquiler existe y está activo o atrasado
     const existingRental = await prisma.rental.findUnique({
       where: { id: rentalId },
       include: {
@@ -3353,89 +3341,64 @@ router.put("/rentals/:id", auth, async (req, res) => {
         },
       },
     });
-    const originalRentalType = existingRental.rentalType;
 
     if (!existingRental) {
       return res.status(404).json({ error: "Alquiler no encontrado" });
     }
 
-    if (existingRental.status !== "RENTED") {
+    if (existingRental.status !== "RENTED" && existingRental.status !== "OVERDUE") {
       return res
         .status(400)
-        .json({ error: "Solo se pueden extender alquileres activos" });
+        .json({ error: "Solo se pueden extender alquileres activos o atrasados" });
     }
 
-    // Validar que la nueva fecha sea futura
-    const newReturnDate = new Date(scheduledReturnDate);
+    // Parsear fecha de devolución de forma segura en hora Colombia
+    let newReturnDate;
+    if (typeof scheduledReturnDate === "string") {
+      if (
+        scheduledReturnDate.includes("Z") ||
+        scheduledReturnDate.includes("+") ||
+        (scheduledReturnDate.length > 19 && scheduledReturnDate.slice(10).includes("-"))
+      ) {
+        newReturnDate = new Date(scheduledReturnDate);
+      } else {
+        const formattedStr = scheduledReturnDate.includes("T")
+          ? scheduledReturnDate
+          : scheduledReturnDate.replace(" ", "T");
+        newReturnDate = new Date(formattedStr + "-05:00");
+      }
+    } else {
+      newReturnDate = new Date(scheduledReturnDate);
+    }
+
+    if (isNaN(newReturnDate.getTime())) {
+      return res.status(400).json({ error: "Fecha de devolución inválida" });
+    }
+
     if (newReturnDate <= new Date()) {
       return res
         .status(400)
         .json({ error: "La nueva fecha de devolución debe ser futura" });
     }
 
-    // 🔥 LÓGICA CORREGIDA PARA EXTENSIONES
-    let newRentalPrice;
-    let newHoursRented;
-    let notesText;
+    const addPrice = Number(additionalPrice) || 0;
+    const currentPrice = Number(existingRental.rentalPrice) || 0;
+    const newRentalPrice = currentPrice + addPrice;
 
+    let newHoursRented = Number(existingRental.hoursRented) || 1;
+    if (rentalType === "HOUR") {
+      newHoursRented += Number(hours) || 1;
+    }
 
-    // 🔥 PRIORIDAD 1: SI EL ALQUILER ORIGINAL ES OVERNIGHT, SIEMPRE SUMAR ADICIONAL
-    if (originalRentalType === "OVERNIGHT") {
-      // 🔥 SI EL ALQUILER ORIGINAL ES AMANECIDA: Siempre sumar adicional, nunca recalcular
-      console.log(
-        "🔥 BACKEND: Alquiler original es OVERNIGHT - preservando precio base"
-      );
-
-      newRentalPrice =
-        Number(existingRental.rentalPrice) + Number(additionalPrice || 0);
-      newHoursRented = existingRental.hoursRented; // Mantener horas originales
-
-      const extensionTypeText =
-        rentalType === "OVERNIGHT" ? "por amanecida" : "por hora";
-      notesText = additionalPrice
-        ? `${
-            existingRental.notes || ""
-          }\nExtensión ${extensionTypeText}: +$${additionalPrice}`.trim()
-        : existingRental.notes;
-    } else if (isExtension && rentalType === "OVERNIGHT") {
-      // 🔥 PRIORIDAD 2: SI EL ALQUILER ORIGINAL ES POR HORA pero se extiende como amanecida
-
-      newRentalPrice =
-        Number(existingRental.rentalPrice) + Number(additionalPrice || 0);
-      newHoursRented = existingRental.hoursRented; // Mantener horas originales
-
-      notesText = additionalPrice
-        ? `${
-            existingRental.notes || ""
-          }\nExtensión por amanecida: +$${additionalPrice}`.trim()
-        : existingRental.notes;
-
-    } else if (isExtension && rentalType === "HOUR") {
-      // 🔥 PRIORIDAD 3: PARA EXTENSIÓN POR HORA desde alquiler por hora
-
-      const rentalDate = new Date(existingRental.rentalDate);
-      const hoursDiff = Math.ceil(
-        (newReturnDate - rentalDate) / (1000 * 60 * 60)
-      );
-      newRentalPrice =
-        Number(existingRental.washingMachine.pricePerHour) * hoursDiff;
-      newHoursRented = hoursDiff;
-
-      notesText = additionalPrice
-        ? `${
-            existingRental.notes || ""
-          }\nExtensión por hora: +${additionalPrice} horas`.trim()
-        : existingRental.notes;
-    } else {
-      // 🔥 LÓGICA ANTIGUA (para compatibilidad)
-      const rentalDate = new Date(existingRental.rentalDate);
-      const hoursDiff = Math.ceil(
-        (newReturnDate - rentalDate) / (1000 * 60 * 60)
-      );
-      newRentalPrice =
-        Number(existingRental.washingMachine.pricePerHour) * hoursDiff;
-      newHoursRented = hoursDiff;
-      notesText = existingRental.notes;
+    let notesText = existingRental.notes || "";
+    if (addPrice > 0) {
+      const extDesc =
+        rentalType === "OVERNIGHT"
+          ? "por amanecida"
+          : `por ${hours || 1} hora(s)`;
+      notesText = notesText
+        ? `${notesText}\nExtensión ${extDesc}: +$${addPrice}`
+        : `Extensión ${extDesc}: +$${addPrice}`;
     }
 
     // Actualizar alquiler
@@ -3445,9 +3408,9 @@ router.put("/rentals/:id", auth, async (req, res) => {
         scheduledReturnDate: newReturnDate.toISOString(),
         hoursRented: newHoursRented,
         rentalPrice: String(newRentalPrice),
-        notes: notesText,
-        // 🔥 Actualizar tipo de alquiler si viene en la petición
-        ...(originalRentalType !== "OVERNIGHT" && rentalType && { rentalType }),
+        notes: notesText || null,
+        status: "RENTED",
+        ...(rentalType && { rentalType }),
       },
       include: {
         washingMachine: {

@@ -4,7 +4,7 @@ import { es } from "date-fns/locale";
 import ModalConfirmacion from "../components/ModalConfirmación";
 import { formatDateToColombia, formatDateForInput } from "../utils/dateUtils.js";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 // Función helper para obtener fecha/hora mínima local (Colombia UTC-5)
 const getLocalDateTimeMin = () => {
@@ -348,60 +348,89 @@ export default function WashingMachines() {
 
   const completeRentalReturn = async (rentalId) => {
     try {
-      await fetch(`${API_URL}/rentals/${rentalId}/deliver`, {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`${API_URL}/rentals/${rentalId}/deliver`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
-      setRentalReminders(rentalReminders.filter((r) => r.id !== rentalId));
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Error al marcar alquiler como devuelto");
+      }
+
+      setRentalReminders((prev) => prev.filter((r) => r.id !== rentalId));
       setSuccess("Alquiler marcado como devuelto");
-      loadActiveRentals(); // Recargar la tabla de alquileres
+      await Promise.all([loadActiveRentals(), loadMachines(), loadReminders(), loadRentalReminders()]);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Error marcando alquiler:", err);
-      setError("Error al marcar alquiler como devuelto");
+      setError(err.message || "Error al marcar alquiler como devuelto");
       setTimeout(() => setError(""), 3000);
     }
   };
 
-  // 🔥 NUEVO: Función para extender alquiler (soporta HOUR y OVERNIGHT según selección)
+  // Abrir modal de extensión con valores predeterminados
+  const handleOpenExtendModal = (rental) => {
+    setShowExtendHours(rental);
+    setExtensionType("HOUR");
+    const pricePerHour = Number(
+      rental.washingMachine?.pricePerHour || rental.baseHourlyPrice || 0
+    );
+    setExtendHoursForm({
+      hours: 1,
+      additionalPrice: pricePerHour,
+    });
+    // Fecha y hora sugerida para amanecida: mañana a las 08:00 AM
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(8, 0, 0, 0);
+    setDeliveryDateTime(formatDateForInput(tomorrow));
+  };
+
+  // Función para extender alquiler (soporta HOUR y OVERNIGHT según selección)
   const handleExtendRental = async () => {
     if (!showExtendHours) return;
 
     try {
       const token = localStorage.getItem("auth_token");
-      
+
       let newScheduledReturnDate;
       let requestBody;
 
-      if (extensionType === 'OVERNIGHT') {
-        // 🔥 PARA AMANECIDA: Usar fecha de entrega y precio adicional
+      if (extensionType === "OVERNIGHT") {
         if (!deliveryDateTime) {
-          setError('Debes seleccionar una fecha y hora de entrega para extensión por amanecida');
+          setError(
+            "Debes seleccionar una fecha y hora de entrega para extensión por amanecida"
+          );
           setTimeout(() => setError(""), 3000);
           return;
         }
         newScheduledReturnDate = deliveryDateTime;
         requestBody = {
           scheduledReturnDate: newScheduledReturnDate,
-          additionalPrice: extendHoursForm.additionalPrice,
-          rentalType: 'OVERNIGHT',
-          isExtension: true
+          additionalPrice: extendHoursForm.additionalPrice || 0,
+          rentalType: "OVERNIGHT",
+          isExtension: true,
         };
       } else {
-        // 🔥 PARA HORAS: Calcular nueva fecha sumando horas
+        const scheduledTime = new Date(
+          showExtendHours.scheduledReturnDate
+        ).getTime();
+        const baseTime =
+          scheduledTime > Date.now() ? scheduledTime : Date.now();
         newScheduledReturnDate = new Date(
-          new Date(showExtendHours.scheduledReturnDate).getTime() +
-            extendHoursForm.hours * 60 * 60 * 1000
+          baseTime + extendHoursForm.hours * 60 * 60 * 1000
         ).toISOString();
         requestBody = {
           scheduledReturnDate: newScheduledReturnDate,
-          additionalPrice: extendHoursForm.additionalPrice,
-          rentalType: 'HOUR',
-          isExtension: true
+          additionalPrice: extendHoursForm.additionalPrice || 0,
+          hours: extendHoursForm.hours,
+          rentalType: "HOUR",
+          isExtension: true,
         };
       }
 
@@ -420,11 +449,16 @@ export default function WashingMachines() {
       }
 
       setSuccess("Alquiler extendido correctamente");
-      await loadActiveRentals();
+      await Promise.all([
+        loadActiveRentals(),
+        loadMachines(),
+        loadReminders(),
+        loadRentalReminders(),
+      ]);
       setShowExtendHours(null);
       setExtendHoursForm({ hours: 1, additionalPrice: 0 });
-      setDeliveryDateTime('');
-      setExtensionType('HOUR'); // Resetear a HOUR
+      setDeliveryDateTime("");
+      setExtensionType("HOUR");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.message);
@@ -496,7 +530,14 @@ export default function WashingMachines() {
         </div>
       )}
 
-      <h1 className="text-3xl font-bold mb-6">🧺 Gestión de Lavadoras</h1>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+          🧺 Gestión de Lavadoras
+        </h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+          Control de inventario, alquileres y recordatorios de devolución
+        </p>
+      </div>
 
       {/* Dashboard de Recordatorios de Devolución */}
       <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
@@ -752,7 +793,17 @@ export default function WashingMachines() {
                           </span>
                         </td>
                         <td className="text-center py-2 px-2">
-                          {machine.initialQuantity - machine.availableQuantity}
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              (machine.rentedQuantity ?? (machine.initialQuantity - machine.availableQuantity)) > 0
+                                ? "bg-amber-100 text-amber-800 font-semibold"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {machine.rentedQuantity !== undefined
+                              ? machine.rentedQuantity
+                              : Math.max(0, machine.initialQuantity - machine.availableQuantity)}
+                          </span>
                         </td>
                         <td className="text-center py-2 px-2">
                           <button
@@ -879,7 +930,7 @@ export default function WashingMachines() {
                             {rental.rentalType === 'OVERNIGHT' ? 'Amanecida 🌙' : 'Por Hora 👁️'}
                           </button>
                           <button
-                            onClick={() => setShowExtendHours(rental)}
+                            onClick={() => handleOpenExtendModal(rental)}
                             className="text-yellow-600 hover:text-yellow-800 mr-2"
                           >
                             Extender ⏰
@@ -1003,12 +1054,23 @@ export default function WashingMachines() {
               Extender Alquiler
             </h3>
             
-            {/* 🔥 SELECCIÓN DE TIPO DE EXTENSIÓN */}
+            {/* SELECCIÓN DE TIPO DE EXTENSIÓN */}
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">Tipo de extensión:</label>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setExtensionType('HOUR')}
+                  onClick={() => {
+                    setExtensionType('HOUR');
+                    const pricePerHour = Number(
+                      showExtendHours.washingMachine?.pricePerHour ||
+                      showExtendHours.baseHourlyPrice ||
+                      0
+                    );
+                    setExtendHoursForm({
+                      hours: 1,
+                      additionalPrice: pricePerHour,
+                    });
+                  }}
                   className={`flex-1 py-2 px-3 rounded-lg font-medium transition-colors ${
                     extensionType === 'HOUR'
                       ? 'bg-blue-600 text-white'
@@ -1018,7 +1080,16 @@ export default function WashingMachines() {
                   Por Hora ⏰
                 </button>
                 <button
-                  onClick={() => setExtensionType('OVERNIGHT')}
+                  onClick={() => {
+                    setExtensionType('OVERNIGHT');
+                    const defaultAddPrice = Number(
+                      showExtendHours.overnightAdditionalPrice || 2000
+                    );
+                    setExtendHoursForm((prev) => ({
+                      ...prev,
+                      additionalPrice: defaultAddPrice,
+                    }));
+                  }}
                   className={`flex-1 py-2 px-3 rounded-lg font-medium transition-colors ${
                     extensionType === 'OVERNIGHT'
                       ? 'bg-purple-600 text-white'
@@ -1137,19 +1208,15 @@ export default function WashingMachines() {
                 <div>
                   <strong>Nueva entrega programada:</strong>{" "}
                   {extensionType === 'OVERNIGHT' ? (
-                    deliveryDateTime ? formatDateToColombia(deliveryDateTime, {
-                      hour: undefined,
-                      minute: undefined,
-                      second: undefined
-                    }) : "Selecciona fecha"
+                    deliveryDateTime ? formatDateToColombia(deliveryDateTime) : "Selecciona fecha"
                   ) : (
-                    format(
+                    formatDateToColombia(
                       new Date(
-                        new Date(showExtendHours.scheduledReturnDate).getTime() +
+                        (new Date(showExtendHours.scheduledReturnDate).getTime() > Date.now()
+                          ? new Date(showExtendHours.scheduledReturnDate).getTime()
+                          : Date.now()) +
                           extendHoursForm.hours * 60 * 60 * 1000
-                      ),
-                      "dd/MM/yyyy HH:mm",
-                      { locale: es }
+                      ).toISOString()
                     )
                   )}
                 </div>

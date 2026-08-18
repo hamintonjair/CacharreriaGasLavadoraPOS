@@ -10,7 +10,7 @@ const ReportCard = ({ title, children, className = '' }) => (
   </div>
 );
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 // const LOGO_URL = import.meta.env.VITE_LOGO_URL;
 export default function Reports() {
   const token = localStorage.getItem('auth_token');
@@ -826,7 +826,8 @@ export default function Reports() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full border rounded-md p-2 text-sm bg-[#3B3B3B] text-white"
+                  style={{ colorScheme: "dark" }}
+                  className="w-full border rounded-md p-2 text-sm bg-[#3B3B3B] text-white dark-date-input"
                 />
               </div>
               <div>
@@ -835,7 +836,8 @@ export default function Reports() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full border rounded-md p-2 text-sm bg-[#3B3B3B] text-white"
+                  style={{ colorScheme: "dark" }}
+                  className="w-full border rounded-md p-2 text-sm bg-[#3B3B3B] text-white dark-date-input"
                 />
               </div>
               <div>

@@ -3,7 +3,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { formatDateToColombia } from "../utils/dateUtils.js";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export default function AccountsReceivable() {
   const [debts, setDebts] = useState([]);
@@ -328,18 +328,18 @@ export default function AccountsReceivable() {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+    <div className="p-4 sm:p-6">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
           Cuentas por Cobrar
         </h1>
-        <p className="text-gray-600">
+        <p className="text-xs sm:text-sm text-gray-500">
           Gestiona y cobra las deudas pendientes de los clientes
         </p>
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="text-sm text-gray-600 mb-1">Total Deuda</div>
           <div className="text-2xl font-bold text-red-600">
@@ -349,7 +349,7 @@ export default function AccountsReceivable() {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="text-sm text-gray-600 mb-1">Ventas Pendientes</div>
           <div className="text-2xl font-bold text-orange-600">
-            {stats.totalSales}
+            {stats.totalSales || 0}
           </div>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -358,9 +358,14 @@ export default function AccountsReceivable() {
             {stats.pendingInstallments || 0}
           </div>
         </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="text-sm text-gray-600 mb-1">Cuotas Vencidas</div>
+          <div className="text-2xl font-bold text-rose-600">
+            {stats.overdueInstallments || 0}
+          </div>
+        </div>
       </div>
 
-      {/* Dashboard de Recordatorios */}
       {/* Dashboard de Recordatorios */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
         <h3 className="text-lg font-semibold text-yellow-800 mb-3 flex items-center">
@@ -384,50 +389,56 @@ export default function AccountsReceivable() {
 
         {reminders.length > 0 ? (
           <div className="space-y-3">
-            {reminders.map((reminder) => (
-              <div
-                key={reminder.id}
-                className="bg-white rounded-lg p-3 border border-yellow-300"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">
-                      {reminder.sale?.client?.nombre || "Cliente"}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Cuota {reminder.installmentNumber} - $
-                      {Number(reminder.amountDue).toLocaleString("es-CO")}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Vence: {formatDateToColombia(reminder.dueDate, {
-                        hour: undefined,
-                        minute: undefined,
-                        second: undefined
-                      })}
-                      {formatDateToColombia(reminder.dueDate) < formatDateToColombia(new Date()) && (
-                        <span className="ml-2 text-red-600 font-semibold">
-                          ⚠️ VENCIDA
+            {reminders.map((reminder) => {
+              const isOverdue = new Date(reminder.dueDate).setHours(23, 59, 59, 999) < new Date().getTime();
+              return (
+                <div
+                  key={reminder.id}
+                  className="bg-white rounded-lg p-3 sm:p-4 border border-yellow-300 shadow-sm"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 truncate">
+                        {reminder.sale?.client?.nombre || "Cliente"}
+                      </div>
+                      <div className="text-sm text-gray-600 font-semibold">
+                        Cuota {reminder.installmentNumber} - $
+                        {Number(reminder.amountDue).toLocaleString("es-CO")}
+                      </div>
+                      <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1 mt-0.5">
+                        <span>
+                          Vence:{" "}
+                          {formatDateToColombia(reminder.dueDate, {
+                            hour: undefined,
+                            minute: undefined,
+                            second: undefined,
+                          })}
                         </span>
-                      )}
+                        {isOverdue && (
+                          <span className="text-red-600 font-semibold bg-red-50 px-1.5 py-0.5 rounded text-[11px]">
+                            ⚠️ VENCIDA
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => sendWhatsAppReminder(reminder)}
-                      className="px-3 py-1.5 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
-                    >
-                      💬 WhatsApp
-                    </button>
-                    <button
-                      onClick={() => markAsNotified(reminder.id)}
-                      className="px-3 py-1.5 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 transition-colors"
-                    >
-                      ✅ Notificado
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => sendWhatsAppReminder(reminder)}
+                        className="px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600 transition-colors whitespace-nowrap"
+                      >
+                        💬 WhatsApp
+                      </button>
+                      <button
+                        onClick={() => markAsNotified(reminder.id)}
+                        className="px-3 py-1.5 bg-gray-500 text-white text-xs font-medium rounded-lg hover:bg-gray-600 transition-colors whitespace-nowrap"
+                      >
+                        ✅ Notificado
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-4">

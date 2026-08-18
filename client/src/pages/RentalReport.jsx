@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { formatDateToColombia } from "../utils/dateUtils.js";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export default function RentalReport() {
 
@@ -364,6 +364,7 @@ export default function RentalReport() {
               type="date"
               value={filters.startDate}
               onChange={(e) => handleFilterChange("startDate", e.target.value)}
+              style={{ colorScheme: "dark" }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-[#3B3B3B] text-white dark-date-input"
             />
           </div>
@@ -376,6 +377,7 @@ export default function RentalReport() {
               type="date"
               value={filters.endDate}
               onChange={(e) => handleFilterChange("endDate", e.target.value)}
+              style={{ colorScheme: "dark" }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-[#3B3B3B] text-white dark-date-input"
             />
           </div>

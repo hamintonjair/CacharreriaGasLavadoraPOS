@@ -1,6 +1,6 @@
 import React from 'react'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 // const LOGO_URL = import.meta.env.VITE_LOGO_URL;
 
 export default function Invoice({ sale, company, client, showPrint = true }) {

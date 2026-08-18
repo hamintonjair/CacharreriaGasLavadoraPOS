@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 export default function Login({ onSuccess }) {
   const [username, setUsername] = useState('')
@@ -76,6 +76,7 @@ export default function Login({ onSuccess }) {
           )}
 
           <button
+            id="login-submit-btn"
             type="submit"
             disabled={loading}
             className="w-full h-12 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98]"
@@ -83,6 +84,36 @@ export default function Login({ onSuccess }) {
             {loading ? 'Ingresando…' : 'INICIAR SESIÓN'}
           </button>
         </form>
+
+        <div className="mt-6 pt-4 border-t border-gray-100 text-xs text-gray-600">
+          <p className="font-semibold text-gray-700 mb-2">Credenciales registradas en el sistema:</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              id="fill-admin-btn"
+              type="button"
+              onClick={() => {
+                setUsername('admin');
+                setPassword('admin123');
+              }}
+              className="p-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded text-left transition-colors text-blue-900"
+            >
+              <div className="font-semibold">👑 Admin</div>
+              <div className="text-[11px] text-blue-700">admin / admin123</div>
+            </button>
+            <button
+              id="fill-vendedor-btn"
+              type="button"
+              onClick={() => {
+                setUsername('vendedor');
+                setPassword('vendedor123');
+              }}
+              className="p-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded text-left transition-colors text-indigo-900"
+            >
+              <div className="font-semibold">💼 Vendedor</div>
+              <div className="text-[11px] text-indigo-700">vendedor / vendedor123</div>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import ModalConfirmacion from '../components/ModalConfirmación'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 export default function Inventory() {
   const token = localStorage.getItem('auth_token')
   const headers = useMemo(() => ({

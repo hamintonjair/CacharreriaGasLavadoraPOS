@@ -17,12 +17,30 @@ body {
 }
 
 .dark-date-input {
-  color: white !important;
-  color-scheme: dark;
-  -webkit-text-fill-color: white;
+  color: #ffffff !important;
+  color-scheme: dark !important;
+  -webkit-text-fill-color: #ffffff;
 }
 
 .dark-date-input::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  opacity: 0.9;
+  cursor: pointer;
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* Reglas globales para inputs de fecha */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+input[type="month"] {
+  color-scheme: dark !important;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: none !important;
+  opacity: 1 !important;
 }

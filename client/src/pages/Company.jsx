@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export default function Company() {
   const token = localStorage.getItem("auth_token");
@@ -112,12 +112,12 @@ export default function Company() {
   }, [loadCompany]);
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+    <div className="p-4 sm:p-6 max-w-2xl mx-auto">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
           Datos de la Empresa
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">
           Gestiona la información de tu empresa para facturas y reportes
         </p>
       </div>
@@ -143,12 +143,12 @@ export default function Company() {
             <div className="flex-shrink-0">
               {company.logo_url ? (
                 <img
-                  src={company.logo_url}
+                  src={company.logo_url.startsWith('http') ? company.logo_url : company.logo_url}
                   alt="Logo de la empresa"
                   className="w-24 h-24 object-contain border rounded-lg"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = "https://res.cloudinary.com/dotrm9j1u/image/upload/v1764612009/company-logos/company-logo.jpg";
+                    e.target.src = "/favicon.png"; // Fallback simple local
                   }}
                 />
               ) : (
