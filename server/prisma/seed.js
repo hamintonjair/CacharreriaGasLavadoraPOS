@@ -4,113 +4,134 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  // Usuario ADMIN
-  const adminUsername = 'admin'
-  const adminPasswordPlain = 'admin123'
-  const passwordHash = await bcrypt.hash(adminPasswordPlain, 10)
+  console.log('🌱 Iniciando seeder...')
 
-  await prisma.user.upsert({
-    where: { username: adminUsername },
+  // 1. Usuarios
+  const adminPassword = await bcrypt.hash('admin123', 10)
+  const adminUser = await prisma.user.upsert({
+    where: { username: 'admin' },
     update: {},
     create: {
       nombre: 'Administrador',
-      username: adminUsername,
-      password: passwordHash,
+      username: 'admin',
+      password: adminPassword,
       role: 'ADMIN',
     },
   })
 
-  // Cliente Genérico por defecto
-  await prisma.client.upsert({
-    where: { id: 1 },
+  const vendedorPassword = await bcrypt.hash('vendedor123', 10)
+  const vendedorUser = await prisma.user.upsert({
+    where: { username: 'vendedor' },
+    update: {},
+    create: {
+      nombre: 'Vendedor Demo',
+      username: 'vendedor',
+      password: vendedorPassword,
+      role: 'VENDEDOR',
+    },
+  })
+  console.log('✅ Usuarios creados')
+
+  // 2. Cliente Genérico
+  const genericClient = await prisma.client.upsert({
+    where: { identificacion: '2222222222' },
     update: {},
     create: {
       nombre: 'Cliente Genérico',
-      identificacion: 'N/A',
-      telefono: 'N/A',
-      direccion: 'N/A',
+      identificacion: '2222222222',
+      telefono: '0000000000',
+    },
+  })
+  console.log('✅ Cliente genérico creado')
+
+  // 3. Categorías
+  const catCacharreria = await prisma.category.upsert({
+    where: { nombre: 'CACHARRERIA' },
+    update: {},
+    create: { nombre: 'CACHARRERIA' },
+  })
+  
+  const catElectro = await prisma.category.upsert({
+    where: { nombre: 'ELECTRODOMESTICOS' },
+    update: {},
+    create: { nombre: 'ELECTRODOMESTICOS' },
+  })
+  console.log('✅ Categorías creadas')
+
+  // 4. Tipos de Gas
+  const gas10 = await prisma.gasType.upsert({
+    where: { nombre: 'Cilindro 10lb' },
+    update: {},
+    create: {
+      nombre: 'Cilindro 10lb',
+      stock_llenos: 20,
+      stock_vacios: 5,
+      precio_venta: 25000,
+      precio_envase: 120000
+    },
+  })
+  
+  const gas40 = await prisma.gasType.upsert({
+    where: { nombre: 'Cilindro 40lb' },
+    update: {},
+    create: {
+      nombre: 'Cilindro 40lb',
+      stock_llenos: 15,
+      stock_vacios: 3,
+      precio_venta: 85000,
+      precio_envase: 150000
     },
   })
 
-  // Categorías
-  const catCacharreria = await prisma.category.upsert({
-    where: { id: 1 },
-    update: { nombre: 'Cacharrería General' },
-    create: { nombre: 'Cacharrería General' },
+  const gas100 = await prisma.gasType.upsert({
+    where: { nombre: 'Cilindro 100lb' },
+    update: {},
+    create: {
+      nombre: 'Cilindro 100lb',
+      stock_llenos: 5,
+      stock_vacios: 1,
+      precio_venta: 210000,
+      precio_envase: 280000
+    },
+  })
+  console.log('✅ Tipos de Gas creados')
+
+  // 5. Productos de ejemplo
+  const prod1 = await prisma.product.upsert({
+    where: { codigo_barras: 'PROD-001' },
+    update: {},
+    create: {
+      nombre: 'Escoba multiusos',
+      codigo_barras: 'PROD-001',
+      precio_venta: 12000,
+      costo: 8000,
+      stock: 50,
+      stock_minimo: 10,
+      categoryId: catCacharreria.id
+    },
+  })
+  
+  const prod2 = await prisma.product.upsert({
+    where: { codigo_barras: 'PROD-002' },
+    update: {},
+    create: {
+      nombre: 'Trapeador de algodón',
+      codigo_barras: 'PROD-002',
+      precio_venta: 15000,
+      costo: 10000,
+      stock: 40,
+      stock_minimo: 10,
+      categoryId: catCacharreria.id
+    },
   })
 
-  const catGas = await prisma.category.upsert({
-    where: { id: 2 },
-    update: { nombre: 'Gas' },
-    create: { nombre: 'Gas' },
-  })
-
-  // Gas Types
-  const gasTypesData = [
-    { nombre: 'Cilindro 10lb', stock_llenos: 10, precio_venta: '45000', precio_envase: '120000' },
-    { nombre: 'Cilindro 40lb', stock_llenos: 10, precio_venta: '150000', precio_envase: '250000' },
-    { nombre: 'Cilindro 100lb', stock_llenos: 10, precio_venta: '320000', precio_envase: '400000' },
-  ]
-
-  for (const g of gasTypesData) {
-    await prisma.gasType.upsert({
-      where: { nombre: g.nombre },
-      update: {
-        stock_llenos: g.stock_llenos,
-        precio_venta: g.precio_venta,
-        precio_envase: g.precio_envase,
-      },
-      create: {
-        nombre: g.nombre,
-        stock_llenos: g.stock_llenos,
-        // stock_vacios queda por defecto en 0
-        precio_venta: g.precio_venta,
-        precio_envase: g.precio_envase,
-      },
-    })
-  }
-
-  // Productos de ejemplo (5) bajo 'Cacharrería General'
-  const products = [
-    { nombre: 'Detergente 1L', codigo_barras: '770000000001', precio_venta: '8500', costo: '6000', stock: 30, stock_minimo: 5 },
-    { nombre: 'Jabón en barra', codigo_barras: '770000000002', precio_venta: '2500', costo: '1500', stock: 100, stock_minimo: 10 },
-    { nombre: 'Escoba', codigo_barras: '770000000003', precio_venta: '12000', costo: '8000', stock: 20, stock_minimo: 3 },
-    { nombre: 'Trapeador', codigo_barras: '770000000004', precio_venta: '14000', costo: '9000', stock: 15, stock_minimo: 3 },
-    { nombre: 'Ambientador', codigo_barras: '770000000005', precio_venta: '7000', costo: '4500', stock: 40, stock_minimo: 5 },
-    { nombre: 'Limpieza', codigo_barras: '770000000006', precio_venta: '7000', costo: '4500', stock: 40, stock_minimo: 5 },
-    
-
-  ]
-
-  for (const p of products) {
-    await prisma.product.upsert({
-      where: { codigo_barras: p.codigo_barras },
-      update: {
-        nombre: p.nombre,
-        precio_venta: p.precio_venta,
-        costo: p.costo,
-        stock: p.stock,
-        stock_minimo: p.stock_minimo,
-        categoryId: catCacharreria.id,
-      },
-      create: {
-        nombre: p.nombre,
-        codigo_barras: p.codigo_barras,
-        precio_venta: p.precio_venta,
-        costo: p.costo,
-        stock: p.stock,
-        stock_minimo: p.stock_minimo,
-        categoryId: catCacharreria.id,
-      },
-    })
-  }
-
-  console.log('Seed completado: admin, categorías, gas types y productos creados.')
+  console.log('✅ Productos creados')
+  console.log('🌱 Base de datos poblada exitosamente.')
 }
 
 main()
   .catch((e) => {
-    console.error(e)
+    console.error('❌ Error en el seeder:', e)
     process.exit(1)
   })
   .finally(async () => {

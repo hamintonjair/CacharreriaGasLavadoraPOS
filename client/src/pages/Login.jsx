@@ -52,7 +52,7 @@ export default function Login({ onSuccess }) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 h-12 bg-white/50 backdrop-blur-sm text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="admin"
+              placeholder="Ingresa tu usuario"
               autoComplete="username"
               required
             />
@@ -84,36 +84,6 @@ export default function Login({ onSuccess }) {
             {loading ? 'Ingresando…' : 'INICIAR SESIÓN'}
           </button>
         </form>
-
-        <div className="mt-6 pt-4 border-t border-gray-100 text-xs text-gray-600">
-          <p className="font-semibold text-gray-700 mb-2">Credenciales registradas en el sistema:</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              id="fill-admin-btn"
-              type="button"
-              onClick={() => {
-                setUsername('admin');
-                setPassword('admin123');
-              }}
-              className="p-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded text-left transition-colors text-blue-900"
-            >
-              <div className="font-semibold">👑 Admin</div>
-              <div className="text-[11px] text-blue-700">admin / admin123</div>
-            </button>
-            <button
-              id="fill-vendedor-btn"
-              type="button"
-              onClick={() => {
-                setUsername('vendedor');
-                setPassword('vendedor123');
-              }}
-              className="p-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded text-left transition-colors text-indigo-900"
-            >
-              <div className="font-semibold">💼 Vendedor</div>
-              <div className="text-[11px] text-indigo-700">vendedor / vendedor123</div>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   )
