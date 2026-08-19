@@ -2932,26 +2932,21 @@ router.get("/rentals/overdue", auth, async (req, res) => {
 
     const overdueRentals = await prisma.rental.findMany({
       where: {
-        status: "ACTIVE",
-        dueDate: { lt: new Date() },
+        status: { in: ["RENTED", "OVERDUE"] },
+        scheduledReturnDate: { lt: new Date() },
       },
       include: {
         client: true,
-        items: {
-          include: {
-            product: true,
-            gasType: true,
-          },
-        },
+        washingMachine: true,
       },
-      orderBy: { dueDate: "asc" },
+      orderBy: { scheduledReturnDate: "asc" },
     });
 
     const formatted = overdueRentals.map(r => ({
       ...r,
       urgency: "OVERDUE",
       diasAtraso: Math.floor(
-        (new Date().getTime() - new Date(r.dueDate).getTime()) / (1000 * 60 * 60 * 24)
+        (new Date().getTime() - new Date(r.scheduledReturnDate).getTime()) / (1000 * 60 * 60 * 24)
       ),
     }));
 
