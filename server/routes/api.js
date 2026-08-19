@@ -2888,6 +2888,51 @@ router.get("/rentals/reminders", auth, async (req, res) => {
     res.status(500).json({ error: "Error al obtener recordatorios" });
   }
 });
+// GET /api/rentals/overdue - Listar alquileres atrasados (ADMIN)
+router.get("/rentals/overdue", auth, async (req, res) => {
+  try {
+    if (
+      !req.user ||
+      (req.user.role !== "ADMIN" && req.user.role !== "VENDEDOR")
+    ) {
+      return res.status(403).json({ error: "No autorizado" });
+    }
+
+    const overdueRentals = await prisma.rental.findMany({
+      where: {
+        status: "ACTIVE",
+        dueDate: { lt: new Date() },
+      },
+      include: {
+        client: true,
+        items: {
+          include: {
+            product: true,
+            gasType: true,
+          },
+        },
+      },
+      orderBy: { dueDate: "asc" },
+    });
+
+    const formatted = overdueRentals.map(r => ({
+      ...r,
+      urgency: "OVERDUE",
+      diasAtraso: Math.floor(
+        (new Date().getTime() - new Date(r.dueDate).getTime()) / (1000 * 60 * 60 * 24)
+      ),
+    }));
+
+    res.json({
+      overdueRentals: formatted,
+      count: formatted.length,
+    });
+  } catch (error) {
+    console.error("Error al obtener alquileres atrasados:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
 
 // GET /api/rentals/:id - Obtener detalles de un alquiler específico (ADMIN/VENDEDOR)
 router.get("/rentals/:id", auth, async (req, res) => {
@@ -3247,62 +3292,6 @@ router.put("/rentals/:id/deliver", auth, async (req, res) => {
   } catch (error) {
     console.error("Error al entregar alquiler:", error);
     res.status(500).json({ error: "Error al entregar el alquiler" });
-  }
-});
-
-// GET /api/rentals/overdue - Listar alquileres atrasados (ADMIN)
-router.get("/rentals/overdue", auth, async (req, res) => {
-  try {
-    if (
-      !req.user ||
-      (req.user.role !== "ADMIN" && req.user.role !== "VENDEDOR")
-    ) {
-      return res.status(403).json({ error: "Acceso denegado" });
-    }
-
-    const now = new Date();
-
-    // Obtener alquileres atrasados
-    const overdueRentals = await prisma.rental.findMany({
-      where: {
-        status: "RENTED",
-        scheduledReturnDate: { lt: now },
-      },
-      include: {
-        washingMachine: {
-          select: { id: true, description: true, pricePerHour: true },
-        },
-        client: {
-          select: {
-            id: true,
-            nombre: true,
-            identificacion: true,
-            telefono: true,
-          },
-        },
-        user: {
-          select: { id: true, nombre: true, username: true },
-        },
-      },
-      orderBy: { scheduledReturnDate: "asc" },
-    });
-
-    // Actualizar estado a OVERDUE
-    await prisma.rental.updateMany({
-      where: {
-        status: "RENTED",
-        scheduledReturnDate: { lt: now },
-      },
-      data: { status: "OVERDUE" },
-    });
-
-    res.json({
-      overdueRentals,
-      count: overdueRentals.length,
-    });
-  } catch (error) {
-    console.error("Error al obtener alquileres atrasados:", error);
-    res.status(500).json({ error: "Error al obtener alquileres atrasados" });
   }
 });
 
