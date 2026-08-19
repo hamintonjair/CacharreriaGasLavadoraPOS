@@ -150,10 +150,10 @@ export default function Company() {
                 <img
                   src={company.logo_url.startsWith('http') ? company.logo_url : company.logo_url}
                   alt="Logo de la empresa"
-                  className="w-24 h-24 object-contain border rounded-lg"
+                  className="w-24 h-24 object-contain border rounded-lg bg-gray-50"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = "/favicon.png"; // Fallback simple local
+                    e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E"; 
                   }}
                 />
               ) : (

@@ -9,6 +9,12 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import sharp from "sharp";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL || "https://qzkkiiymduefnbwmdtgb.supabase.co";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "dummy";
+let supabase = createClient(supabaseUrl, supabaseKey);
+
 const router = Router();
 
 // Configuración de Multer para subida de logos
@@ -2467,10 +2473,33 @@ router.post("/company/logo", auth, upload.single("logo"), async (req, res) => {
       return res.status(400).json({ error: "No se subió ningún archivo" });
     }
 
-    // URL local del logo
-    const logoUrl = `/uploads/logos/${req.file.filename}`;
+    // Subir a Supabase Storage
+    const fileBuffer = fs.readFileSync(req.file.path);
+    
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
+      .from('uploads')
+      .upload(`logos/${req.file.filename}`, fileBuffer, {
+        contentType: req.file.mimetype,
+        upsert: true
+      });
 
-    console.log("✅ Logo subido localmente:", logoUrl);
+    if (uploadError) {
+      console.error("Error subiendo a Supabase:", uploadError);
+      return res.status(500).json({ error: "No se pudo subir el logo a la nube" });
+    }
+
+    // Obtener URL publica de Supabase
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('uploads')
+      .getPublicUrl(`logos/${req.file.filename}`);
+
+    const logoUrl = publicUrl;
+    console.log("✅ Logo subido a Supabase Storage:", logoUrl);
+
+    // Borrar el archivo temporal local de Render
+    try { fs.unlinkSync(req.file.path); } catch(e) {}
 
     // Obtener o crear la empresa
     let existingCompany = await prisma.company.findFirst();
