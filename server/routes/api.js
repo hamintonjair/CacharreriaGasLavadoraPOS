@@ -2486,7 +2486,10 @@ router.post("/company/logo", auth, upload.single("logo"), async (req, res) => {
 
     if (uploadError) {
       console.error("Error subiendo a Supabase:", uploadError);
-      return res.status(500).json({ error: "No se pudo subir el logo a la nube" });
+      return res.status(500).json({ 
+        error: "No se pudo subir el logo a la nube. Verifica que las claves de Supabase (VITE_SUPABASE_ANON_KEY) estén configuradas en Render o localmente.",
+        details: uploadError.message
+      });
     }
 
     // Obtener URL publica de Supabase
