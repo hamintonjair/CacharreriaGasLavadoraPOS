@@ -3,12 +3,6 @@ import React, { useEffect, useState, useCallback } from "react";
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export default function Company() {
-  const token = localStorage.getItem("auth_token");
-  const authHeaders = {
-    "Content-Type": "application/json",
-    Authorization: token ? `Bearer ${token}` : "",
-  };
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -26,8 +20,14 @@ export default function Company() {
   const loadCompany = useCallback(async () => {
     setLoading(true);
     setError("");
+    const currentToken = localStorage.getItem("auth_token");
+    const currentHeaders = {
+      "Content-Type": "application/json",
+      Authorization: currentToken ? `Bearer ${currentToken}` : "",
+    };
+
     try {
-      const res = await fetch(`${API_URL}/company`, { headers: authHeaders });
+      const res = await fetch(`${API_URL}/company`, { headers: currentHeaders });
       const data = await res.json();
       if (!res.ok)
         throw new Error(data?.error || "Error cargando datos de la empresa");
@@ -47,9 +47,13 @@ export default function Company() {
     setSuccess("");
 
     try {
+      const currentToken = localStorage.getItem("auth_token");
       const res = await fetch(`${API_URL}/company`, {
         method: "PUT",
-        headers: authHeaders,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: currentToken ? `Bearer ${currentToken}` : "",
+        },
         body: JSON.stringify(company),
       });
       const data = await res.json();
@@ -88,10 +92,11 @@ export default function Company() {
       const formData = new FormData();
       formData.append("logo", file);
 
+      const currentToken = localStorage.getItem("auth_token");
       const res = await fetch(`${API_URL}/company/logo`, {
         method: "POST",
         headers: {
-          Authorization: token ? `Bearer ${token}` : "",
+          Authorization: currentToken ? `Bearer ${currentToken}` : "",
         },
         body: formData,
       });
